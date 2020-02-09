@@ -46,6 +46,7 @@ The time.h file in this library conflicts with the time.h file in the ESP core p
 
 
 #include <Arduino.h>
+#include <time.h>
 #include <ESP8266WiFi.h>
 #include <Hash.h>
 #include <ESPAsyncWebServer.h>
@@ -55,16 +56,9 @@ The time.h file in this library conflicts with the time.h file in the ESP core p
 #include <Ticker.h>
 #include <pcf8574_esp.h>
 #include <Wire.h>
-
-//Debug flags for ntpclientlib
-#define DBG_PORT Serial1
-#define DEBUG_NTPCLIENT
-
-#include <TimeLib.h>
-#include <NtpClientLib.h>
+#include <SPIFFSLogger.h>
 
 #include "defines.h"
-
 
 bool PCF8574Enabled;
 volatile bool emergencyStop=false;
@@ -77,8 +71,8 @@ AsyncWebServer server(80);
 
 bool server_running=false;
 bool wifiFirstConnected = false;
-bool NTPsyncEventTriggered = false; // True if a time even has been triggered
-NTPSyncEvent_t ntpEvent; // Last triggered event
+//bool NTPsyncEventTriggered = false; // True if a time even has been triggered
+//NTPSyncEvent_t ntpEvent; // Last triggered event
 
 uint8_t packetType=0;
 uint8_t previousRelayState[RELAY_TOTAL];
@@ -98,8 +92,6 @@ void ICACHE_RAM_ATTR PCFInterrupt() {
 //up to 4x16
 CellModuleInfo cmi[maximum_bank_of_modules][maximum_cell_modules];
 uint8_t numberOfModules[maximum_bank_of_modules];
-
-
 
 #include "crc16.h"
 
@@ -126,20 +118,67 @@ WiFiEventHandler wifiConnectHandler;
 WiFiEventHandler wifiDisconnectHandler;
 
 Ticker myTimerRelay;
-
 Ticker myTimer;
 Ticker myTransmitTimer;
 Ticker wifiReconnectTimer;
 Ticker mqttReconnectTimer;
 Ticker myTimerSendMqttPacket;
 Ticker myTimerSendInfluxdbPacket;
-
 Ticker myTimerSwitchPulsedRelay;
-
+Ticker myHistoricLoggerTimer;
 
 uint16_t sequence=0;
 
 AsyncMqttClient mqttClient;
+
+SPIFFSLogger<HistoricCellDataBank> historicBank0("/bank0", 7);
+SPIFFSLogger<HistoricCellDataBank> historicBank1("/bank1", 7);
+SPIFFSLogger<HistoricCellDataBank> historicBank2("/bank2", 7);
+SPIFFSLogger<HistoricCellDataBank> historicBank3("/bank3", 7);
+
+void timerHistoricLoggerCallback() {
+
+  //if (NTP.getFirstSync()==0) {
+//    Serial1.println("Aborted historic data...NTP not synced");
+    //return;
+  //}
+
+  //Loop through cells writing data to the SPIFFs
+  //this might be a bit slow!
+  for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
+  {
+    Serial1.print("\r\nWriting historic data, bank:");
+    Serial1.print(bank);
+    Serial1.print(',');
+    HistoricCellDataBank history;
+
+    memset(&history,0,sizeof(HistoricCellDataBank));
+
+    for (int8_t i = 0; i < numberOfModules[bank]; i++) {
+      uint8_t statusBits=0;
+
+      if (cmi[bank][i].inBypass) {statusBits+=1;}
+      if (cmi[bank][i].bypassOverTemp) {statusBits+=2;}
+
+      history.allCells[i].voltagemV=cmi[bank][i].voltagemV;
+      history.allCells[i].internalTemp=cmi[bank][i].internalTemp;
+      history.allCells[i].externalTemp=cmi[bank][i].externalTemp;
+      history.allCells[i].statusBits=statusBits;
+
+      Serial1.print(i);
+      Serial1.print('/');
+    }
+    //This isnt very scalable probably need a better SPIFF library to deal with filenames
+    //at runtime
+    if(bank==0) { historicBank0.write(history);}
+    if(bank==1) { historicBank1.write(history);}
+    if(bank==2) { historicBank2.write(history);}
+    if(bank==3) { historicBank3.write(history);}
+    Serial1.println("..Done");
+  }
+
+}
+
 
 void dumpPacketToDebug(packet *buffer) {
   Serial1.print(buffer->address,HEX);
@@ -158,27 +197,11 @@ void dumpPacketToDebug(packet *buffer) {
 }
 
 uint16_t minutesSinceMidnight() {
-  return (hour() * 60) + minute();
+  time_t now = time(nullptr);
+  struct tm *tmp = gmtime(&now);
+  return (tmp->tm_hour * 60) + tmp->tm_min;
 }
 
-void processSyncEvent (NTPSyncEvent_t ntpEvent) {
-    if (ntpEvent < 0) {
-        Serial1.printf ("Time Sync error: %d\n", ntpEvent);
-        if (ntpEvent == noResponse)
-            Serial1.println ("NTP server not reachable");
-        else if (ntpEvent == invalidAddress)
-            Serial1.println ("Invalid NTP server address");
-        else if (ntpEvent == errorSending)
-            Serial1.println ("Error sending request");
-        else if (ntpEvent == responseError)
-            Serial1.println ("NTP response error");
-    } else {
-        if (ntpEvent == timeSyncd) {
-            Serial1.print ("Got NTP time: ");
-            Serial1.println (NTP.getTimeDateString (NTP.getLastNTPSync()));
-        }
-    }
-}
 
 
 void onPacketReceived(const uint8_t* receivebuffer, size_t len)
@@ -201,6 +224,8 @@ void onPacketReceived(const uint8_t* receivebuffer, size_t len)
     Serial1.println();
   }
 }
+
+
 
 void timerTransmitCallback() {
   //Don't send another message until we have received reply from the last one
@@ -654,6 +679,8 @@ void onMqttConnect(bool sessionPresent) {
   myTimerSendMqttPacket.attach(30, sendMqttPacket);
 }
 
+
+
 void LoadConfiguration() {
 
   if (Settings::ReadConfigFromEEPROM((char*)&mysettings, sizeof(mysettings), EEPROM_SETTINGS_START_ADDRESS)) return;
@@ -720,6 +747,8 @@ void LoadConfiguration() {
     }
 }
 
+
+
 void setup() {
   WiFi.mode(WIFI_OFF);
 
@@ -776,6 +805,17 @@ void setup() {
 
   LoadConfiguration();
 
+  // initialize SPIFFS
+  if (!SPIFFS.begin()) {
+      Serial1.println("An Error has occurred while mounting SPIFFS");
+  }
+
+  // initialize our logger
+  historicBank0.init();
+  historicBank1.init();
+  historicBank2.init();
+  historicBank3.init();
+
   //SDA / SCL
   //I'm sure this should be 4,5 !
   Wire.begin(5,4);
@@ -809,17 +849,6 @@ void setup() {
 
   //internal pullup-resistor on the interrupt line via ESP8266
   pcf8574.resetInterruptPin();
-  attachInterrupt(digitalPinToInterrupt(D5), PCFInterrupt, FALLING);
-
-  //Ensure we service the cell modules every 4 seconds
-  myTimer.attach(4, timerEnqueueCallback);
-
-  //Process rules every 5 seconds (this prevents the relays from clattering on and off)
-  myTimerRelay.attach(5, timerProcessRules);
-
-  //We process the transmit queue every 0.5 seconds (this needs to be lower delay than the queue fills)
-  myTransmitTimer.attach(0.5, timerTransmitCallback);
-
 
   //Temporarly force WIFI settings
   //wifi_eeprom_settings xxxx;
@@ -835,11 +864,20 @@ void setup() {
       DIYBMSSoftAP::SetupAccessPoint(&server);
   } else {
 
-    //Config NTP
-      NTP.onNTPSyncEvent ([](NTPSyncEvent_t event) {
-         ntpEvent = event;
-         NTPsyncEventTriggered = true;
-     });
+
+    attachInterrupt(digitalPinToInterrupt(D5), PCFInterrupt, FALLING);
+
+    //Ensure we service the cell modules every 4 seconds
+    myTimer.attach(4, timerEnqueueCallback);
+
+    //Process rules every 5 seconds (this prevents the relays from clattering on and off)
+    myTimerRelay.attach(5, timerProcessRules);
+
+    //We process the transmit queue every 0.5 seconds (this needs to be lower delay than the queue fills)
+    myTransmitTimer.attach(0.5, timerTransmitCallback);
+
+    myHistoricLoggerTimer.attach(60, timerHistoricLoggerCallback);
+
 
       Serial1.println("Connecting to WIFI");
 
@@ -860,6 +898,7 @@ void setup() {
 
       connectToWifi();
   }
+
 }
 
 void loop() {
@@ -890,15 +929,15 @@ void loop() {
       Serial1.print("Requesting NTP from ");
       Serial1.println(mysettings.ntpServer);
       wifiFirstConnected = false;
-      //Update time every 10 minutes
-      NTP.setInterval (600);
-      NTP.setNTPTimeout (NTP_TIMEOUT);
-      // String ntpServerName, int8_t timeZone, bool daylight, int8_t minutes, AsyncUDP* udp_conn
-      NTP.begin (mysettings.ntpServer, mysettings.timeZone, mysettings.daylight, mysettings.minutesTimeZone);
+
+      //mysettings.timeZone*60+mysettings.minutesTimeZone
+
+      configTime(mysettings.timeZone* 3600, mysettings.daylight ?  60*60 : 0, mysettings.ntpServer);
   }
 
-  if (NTPsyncEventTriggered) {
-      processSyncEvent (ntpEvent);
-      NTPsyncEventTriggered = false;
-  }
+  //TODO: We should only do this if NTP is correct!
+  historicBank0.process();
+  historicBank1.process();
+  historicBank2.process();
+  historicBank3.process();
 }

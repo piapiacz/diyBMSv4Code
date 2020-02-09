@@ -15,6 +15,9 @@
 #include "PacketRequestGenerator.h"
 #include "PacketReceiveProcessor.h"
 #include "ESP8266TrueRandom.h"
+#include <time.h>
+
+#include <SPIFFSLogger.h>
 
 class DIYBMSServer {
    public:
@@ -31,6 +34,8 @@ class DIYBMSServer {
       static void integration(AsyncWebServerRequest *request);
       static void identifyModule(AsyncWebServerRequest *request);
       static void rules(AsyncWebServerRequest *request);
+      static void history(AsyncWebServerRequest *request);
+      static void historicfiles(AsyncWebServerRequest *request);
       static String TemplateProcessor(const String& var);
       static bool validateXSS(AsyncWebServerRequest *request);
       static void SendSuccess(AsyncWebServerRequest *request);
@@ -46,6 +51,7 @@ class DIYBMSServer {
       static void saveBankConfiguration(AsyncWebServerRequest *request);
       static void saveRuleConfiguration(AsyncWebServerRequest *request);
       static void saveNTP(AsyncWebServerRequest *request);
+      static uint16_t minutesSinceMidnight();
 };
 
 //TODO: Mixing of classes, static and extern is not great
@@ -55,4 +61,11 @@ extern diybms_eeprom_settings mysettings;
 extern uint16_t ConfigHasChanged;
 extern bool rule_outcome[RELAY_RULES];
 extern bool PCF8574Enabled;
+
+extern SPIFFSLogger<HistoricCellDataBank> historicBank0;
+extern SPIFFSLogger<HistoricCellDataBank> historicBank1;
+extern SPIFFSLogger<HistoricCellDataBank> historicBank2;
+extern SPIFFSLogger<HistoricCellDataBank> historicBank3;
+
+
 #endif
