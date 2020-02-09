@@ -22,6 +22,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
         <a id="modules" href="#modules">Modules</a>
         <a id="integration" href="#integration">Integration</a>
         <a id="settings" href="#settings">Settings</a>
+        <a id="history" href="#history">History</a>
         <a id="about" href="#about">About</a>
     </div>
 </div>
@@ -48,14 +49,23 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
         <div id="graph1" style="width:100%%; height:100%%;"></div>
     </div>
 </div>
+
+<div class="page" id="historyPage">
+    <h1>History</h1>
+    <h2>Source Code</h2>
+    <a href="historicfiles.json" target="_blank">historicfiles.json</a>
+    <a href="history.json" target="_blank">history.json</a>
+</div>
+
 <div class="page" id="aboutPage">
     <h1>About</h1>
     <h2>Source Code</h2>
+    <a href="https://github.com/stuartpittaway/diyBMSv4Code" target="_blank">https://github.com/stuartpittaway/diyBMSv4Code</a>
+    <h2>Hardware</h2>
     <a href="https://github.com/stuartpittaway/diyBMSv4" target="_blank">https://github.com/stuartpittaway/diyBMSv4</a>
     <h2>Videos</h2>
     <a href="https://www.youtube.com/stuartpittaway" target="_blank">YouTube videos on installation and configuration</a>
-    <h2>WARNING</h2>
-    <p>This is a DIY product/solution so don’t use this for safety critical systems or in any situation where there could be a risk to life.</p>
+    <h2>WARNING</h2><p>This is a DIY product/solution so don’t use this for safety critical systems or in any situation where there could be a risk to life.</p>
     <p>There is no warranty, it may not work as expected or at all.</p>
     <p>The use of this project is done so entirely at your own risk.  It may involve electrical voltages which could kill - if in doubt, seek help.</p>
     <p>The use of this project may not be compliant with local laws or regulations - if in doubt, seek help.</p>
@@ -71,11 +81,11 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
             <span>Bank</span>
             <span>Cell</span>
             <span>Voltage</span>
-            <span class='hide'>V. Min</span>
-            <span class='hide'>V. Max</span>
-            <span class='hide'>Temp<br/>Int °C</span>
-            <span class='hide'>Temp<br/>Ext °C</span>
-            <span class='hide'>Bad packet<br/>count</span>
+            <span class="hide">V. Min</span>
+            <span class="hide">V. Max</span>
+            <span class="hide">Temp<br/>Int &#176;C</span>
+            <span class="hide">Temp<br/>Ext &#176;C</span>
+            <span class="hide">Bad packet<br/>count</span>
         </div>
         <div class="rows" id="modulesRows"></div>
     </div>
@@ -698,6 +708,15 @@ $(function() {
 
     $("#settingConfig").hide();
     $("#modulesPage").show();
+    return true;
+  });
+
+  $("#history").click(function() {
+    $(".header-right a").removeClass("active");
+    $(this).addClass("active");
+    $(".page").hide();
+
+    $("#historyPage").show();
     return true;
   });
 
