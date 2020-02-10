@@ -71,8 +71,6 @@ AsyncWebServer server(80);
 
 bool server_running=false;
 bool wifiFirstConnected = false;
-//bool NTPsyncEventTriggered = false; // True if a time even has been triggered
-//NTPSyncEvent_t ntpEvent; // Last triggered event
 
 uint8_t packetType=0;
 uint8_t previousRelayState[RELAY_TOTAL];
@@ -139,14 +137,7 @@ SPIFFSLogger<HistoricCellDataBank> historicBank2("/bank2", 7);
 SPIFFSLogger<HistoricCellDataBank> historicBank3("/bank3", 7);
 
 void timerHistoricLoggerCallback() {
-
-  //if (NTP.getFirstSync()==0) {
-//    Serial1.println("Aborted historic data...NTP not synced");
-    //return;
-  //}
-
-  //Loop through cells writing data to the SPIFFs
-  //this might be a bit slow!
+  //Loop through cells writing data to the SPIFFs this might be a bit slow!
   for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
   {
     Serial1.print("\r\nWriting historic data, bank:");
@@ -170,17 +161,14 @@ void timerHistoricLoggerCallback() {
       Serial1.print(i);
       Serial1.print('/');
     }
-    //This isnt very scalable probably need a better SPIFF library to deal with filenames
-    //at runtime
+    //This isnt very scalable probably need a better SPIFF library to deal with filenames at runtime
     if(bank==0) { historicBank0.write(history);}
     if(bank==1) { historicBank1.write(history);}
     if(bank==2) { historicBank2.write(history);}
     if(bank==3) { historicBank3.write(history);}
     Serial1.println("..Done");
   }
-
 }
-
 
 void dumpPacketToDebug(packet *buffer) {
   Serial1.print(buffer->address,HEX);
@@ -245,8 +233,6 @@ void timerTransmitCallback() {
   //this slows the transmit process down a lot so potentially need to look at a better
   //way to do this and also keep track of missing messages replies for error tracking
   if (waitingForReply) {
-    //Serial1.print('E');Serial1.print(receiveProc.commsError);
-
     //Increment the counter to watch for complete comms failures
     receiveProc.commsError++;
 
@@ -508,7 +494,6 @@ static AsyncClient * aClient = NULL;
 
 void setupInfluxClient()
 {
-
     if (aClient) //client already exists
         return;
 
@@ -950,9 +935,6 @@ void loop() {
       Serial1.print("Requesting NTP from ");
       Serial1.println(mysettings.ntpServer);
       wifiFirstConnected = false;
-
-      //mysettings.timeZone*60+mysettings.minutesTimeZone
-
       configTime(mysettings.timeZone* 3600, mysettings.daylight ?  60*60 : 0, mysettings.ntpServer);
   }
 
