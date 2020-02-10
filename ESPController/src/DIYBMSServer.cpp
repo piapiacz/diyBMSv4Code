@@ -493,15 +493,21 @@ void DIYBMSServer::history(AsyncWebServerRequest *request) {
         response->print("{");
         //JsonObject cell = ba.createNestedObject();
         response->printf("\"v\":%u,",data[row].data.allCells[i].voltagemV);
-        response->printf("\"int\":%i,",data[row].data.allCells[i].internalTemp);
-        response->printf("\"ext\":%i,",data[row].data.allCells[i].externalTemp);
-        response->printf("\"status\":%u",data[row].data.allCells[i].statusBits);
-        response->print("},");
+        response->printf("\"i\":%i,",data[row].data.allCells[i].internalTemp);
+        response->printf("\"e\":%i,",data[row].data.allCells[i].externalTemp);
+        response->printf("\"s\":%u",data[row].data.allCells[i].statusBits);
+        response->print("}");
+        if (i!=maximum_cell_modules-1) {
+           response->print(",");
+        }
       }//end for i
       response->print("]");
 
       //end of a row of data
-      response->println("},");
+      response->print("}");
+      if (row!=rowsFound-1) {
+        response->println(",");
+      }
 
     }//end for row
 

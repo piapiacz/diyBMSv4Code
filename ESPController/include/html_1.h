@@ -52,10 +52,15 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
 
 <div class="page" id="historyPage">
     <h1>History</h1>
+    <form id="historyForm" method="POST" action="XXXXX.json" autocomplete="off"><div class="settings"><div><label for="hfilelist">Select historic data to view</label><select id="hfilelist" name="hfilelist"></select></div></div></form>
     <h2>Source Code</h2>
-    <a href="historicfiles.json" target="_blank">historicfiles.json</a>
     <a href="history.json" target="_blank">history.json</a>
+
+    <div class="graphs" style="">
+        <div id="historygraph" style="width:100%%; height:100%%;"></div>
+    </div>
 </div>
+
 
 <div class="page" id="aboutPage">
     <h1>About</h1>
@@ -182,7 +187,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
             </div>
             <div>
                 <label for="mqttPassword">Password</label>
-                <input type="password" name="mqttPassword" id="mqttPassword" value="" required="" maxlength="32">
+                <input type="password" name="mqttPassword" id="mqttPassword" value="" required="" maxlength="32" autocomplete="off">
             </div>
             <input type="submit" value="Save MQTT settings"/>
         </div>
@@ -215,7 +220,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
             </div>
             <div>
                 <label for="influxPassword">Password</label>
-                <input type="password" name="influxPassword" id="influxPassword" value="" required="" maxlength="32">
+                <input type="password" name="influxPassword" id="influxPassword" value="" required="" maxlength="32" autocomplete="off">
             </div>
             <input type="submit" value="Save Influx DB settings"/>
         </div>
@@ -717,8 +722,83 @@ $(function() {
     $(".page").hide();
 
     $("#historyPage").show();
+
+    //Clear select options
+    $("#hfilelist").find('option').remove().end();
+
+    $.getJSON( "historicfiles.json",
+      function(data) {
+
+        $.each(data.files, function(index2, f) {
+          $("#hfilelist").append('<option value="'+f.file+'">'+f.file+'   ('+f.size+')</option>');
+        });
+
+      }).fail(function() {} );
+
     return true;
   });
+
+  $("#hfilelist").change(function() {
+
+    $.getJSON( "history.json",
+      function(data) {
+
+        var min=999999;
+        var max=0;
+        var values=[];
+
+        $.each(data.history, function(index2, cell) {
+
+          var v=[];
+
+          var d=new Date(1000*cell.timeUTC);
+          v.push(d.toISOString());
+          for (i = 0; i < cell.data.length; i++) {
+            v.push(cell.data[i].v/1000);
+
+            if (cell.data[i].v>max) max=cell.data[i].v;
+            if (min>cell.data[i].v) min=cell.data[i].v;
+          }
+
+          values.push(v);
+
+        });
+
+        max=(max/1000)+0.5;
+
+        if (min>0) {
+          min=(min/1000)-0.5;
+        }
+
+        //console.log(values);
+
+            var option = {
+              xAxis: {type:'time' },
+              yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: { show: false },position:'left', axisLabel: { formatter:'{value}V' } },
+              series: [
+              {name: 'cell0',type:'line',encode:{x: 'timestamp',y: 'cell0'}},
+              {name: 'cell1',type:'line',encode:{x: 'timestamp',y: 'cell1'}},
+              {name: 'cell2',type:'line',encode:{x: 'timestamp',y: 'cell2'}},
+              {name: 'cell3',type:'line',encode:{x: 'timestamp',y: 'cell3'}},
+              {name: 'cell4',type:'line',encode:{x: 'timestamp',y: 'cell4'}},
+              {name: 'cell5',type:'line',encode:{x: 'timestamp',y: 'cell5'}},
+              {name: 'cell6',type:'line',encode:{x: 'timestamp',y: 'cell6'}},
+              {name: 'cell7',type:'line',encode:{x: 'timestamp',y: 'cell7'}},
+              {name: 'cell8',type:'line',encode:{x: 'timestamp',y: 'cell8'}}
+              ],
+              dataset:{
+                source:values,
+                dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8'],
+              }
+           };
+
+           g3 = echarts.init(document.getElementById('historygraph'));
+           g3.setOption(option);
+
+      }) .fail(function() {console.log( "error" );});
+
+  });
+
 
   $("#settings").click(function() {
     $(".header-right a").removeClass("active");
