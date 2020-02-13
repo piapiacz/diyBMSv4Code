@@ -131,10 +131,11 @@ uint16_t sequence=0;
 
 AsyncMqttClient mqttClient;
 
-SPIFFSLogger<HistoricCellDataBank> historicBank0("/bank0", 7);
-SPIFFSLogger<HistoricCellDataBank> historicBank1("/bank1", 7);
-SPIFFSLogger<HistoricCellDataBank> historicBank2("/bank2", 7);
-SPIFFSLogger<HistoricCellDataBank> historicBank3("/bank3", 7);
+
+SPIFFSLogger<HistoricCellDataBank> historicBank0("/bank0", HISTORY_DAYS_TO_RETAIN);
+SPIFFSLogger<HistoricCellDataBank> historicBank1("/bank1", HISTORY_DAYS_TO_RETAIN);
+SPIFFSLogger<HistoricCellDataBank> historicBank2("/bank2", HISTORY_DAYS_TO_RETAIN);
+SPIFFSLogger<HistoricCellDataBank> historicBank3("/bank3", HISTORY_DAYS_TO_RETAIN);
 
 void timerHistoricLoggerCallback() {
   //Loop through cells writing data to the SPIFFs this might be a bit slow!

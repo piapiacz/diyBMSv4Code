@@ -55,6 +55,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
     <form id="historyForm" method="POST" action="XXXXX.json" autocomplete="off"><div class="settings"><div><label for="hfilelist">Select historic data to view</label><select id="hfilelist" name="hfilelist"></select></div></div></form>
     <h2>Source Code</h2>
     <a href="history.json" target="_blank">history.json</a>
+    <a href="historysummary.json" target="_blank">historysummary.json</a>
 
     <div class="graphs" style="">
         <div id="historygraph" style="width:100%%; height:100%%;"></div>

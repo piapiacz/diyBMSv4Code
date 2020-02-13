@@ -3,6 +3,7 @@
 #ifndef DIYBMS_DEFINES_H_
 #define DIYBMS_DEFINES_H_
 
+#define HISTORY_DAYS_TO_RETAIN 7
 
 #define GREEN_LED D0
 

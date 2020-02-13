@@ -35,7 +35,7 @@ class DIYBMSServer {
       static void identifyModule(AsyncWebServerRequest *request);
       static void rules(AsyncWebServerRequest *request);
       static void history(AsyncWebServerRequest *request);
-      static void historicfiles(AsyncWebServerRequest *request);
+      static void historysummary(AsyncWebServerRequest *request);
       static String TemplateProcessor(const String& var);
       static bool validateXSS(AsyncWebServerRequest *request);
       static void SendSuccess(AsyncWebServerRequest *request);

@@ -30,7 +30,6 @@ distribute your   contributions under the same license as the original.
 #include "ArduinoJson.h"
 #include "defines.h"
 #include "ESP8266TrueRandom.h"
-//#include <TimeLib.h>
 #include "settings.h"
 
 #include "html_1.h"
@@ -43,6 +42,135 @@ AsyncWebServer *DIYBMSServer::_myserver;
 String DIYBMSServer::UUIDString;
 
 #define REBOOT_COUNT_DOWN 2000
+
+
+
+
+void DIYBMSServer::historysummary(AsyncWebServerRequest *request) {
+  AsyncResponseStream *response = request->beginResponseStream("application/json");
+
+  DynamicJsonDocument doc(2048);
+  JsonObject rootJson = doc.to<JsonObject>();
+
+  FSInfo fs_info;
+  SPIFFS.info(fs_info);
+
+  rootJson["totalBytes"]=fs_info.totalBytes;
+  rootJson["usedBytes"]=fs_info.usedBytes;
+
+  String str = "";
+  Dir dir = SPIFFS.openDir("/");
+  JsonArray fileArray = rootJson.createNestedArray("files");
+  while (dir.next()) {
+
+    if (dir.isFile()) {
+      JsonObject f = fileArray.createNestedObject();
+      f["file"]=dir.fileName();
+
+      File file=dir.openFile("r");
+      f["rowCount"]=historicBank0.rowCount(file);
+      file.close();
+
+      struct tm timeinfo;
+
+      // Parse filename into date /bank0/20200209
+
+      timeinfo.tm_sec=0;
+      timeinfo.tm_min=0;
+      timeinfo.tm_hour=0;
+      timeinfo.tm_isdst=0;
+
+      String date=dir.fileName().substring( dir.fileName().lastIndexOf('/')+1 );
+
+      timeinfo.tm_year=date.substring(0,4).toInt();
+      timeinfo.tm_mon=date.substring(4,4+2).toInt();
+      timeinfo.tm_mday=date.substring(6,6+2).toInt();
+
+      timeinfo.tm_year-=1900;
+      timeinfo.tm_mon-=1;
+
+      f["timeUTC"]=mktime(&timeinfo);
+
+      }
+  }
+
+
+
+
+/*
+  JsonArray bankArray = rootJson.createNestedArray("banks");
+
+//BUG THIS WONT WORK IF THE FILE DOESNT EXIST!
+//HISTORY_DAYS_TO_RETAIN
+  for (size_t i = 0; i < numberOfFiles; i++) {
+    JsonObject f0 = bankArray.createNestedObject();
+    f0["time"]=now;
+
+    JsonArray d1 = f0.createNestedArray("rows");
+    d1.add(historicBank0.rowCount(now));
+    //d1.add(historicBank1.rowCount(now));
+    //d1.add(historicBank2.rowCount(now));
+    //d1.add(historicBank3.rowCount(now));
+
+    //Go back a day
+    now-=24*60*60;
+  }
+*/
+
+  serializeJson(doc, *response);
+  request->send(response);
+}
+
+
+void DIYBMSServer::history(AsyncWebServerRequest *request) {
+  AsyncResponseStream *response = request->beginResponseStream("application/json");
+
+//Create our own JSON format so we can stream the data out
+  response->print("{\"history\":[");
+
+  SPIFFSLogData<HistoricCellDataBank> data[15];
+
+  //The last row
+  time_t now = time(nullptr);
+
+  uint8_t bank = 0;
+
+    const size_t rowCount = historicBank0.rowCount(now);
+    size_t rowsFound=historicBank0.readRows(&data[0], now, rowCount - 15, 15);
+
+    for (size_t row = 0; row < rowsFound; row++) {
+      //Start of a row of data
+          response->print("{");
+      response->printf("\"timeUTC\":%lu,",data[row].timestampUTC);
+
+      response->print("\"data\":[");
+      for (uint16_t i = 0; i < maximum_cell_modules; i++) {
+        response->print("{");
+        //JsonObject cell = ba.createNestedObject();
+        response->printf("\"v\":%u,",data[row].data.allCells[i].voltagemV);
+        response->printf("\"i\":%i,",data[row].data.allCells[i].internalTemp);
+        response->printf("\"e\":%i,",data[row].data.allCells[i].externalTemp);
+        response->printf("\"s\":%u",data[row].data.allCells[i].statusBits);
+        response->print("}");
+        if (i!=maximum_cell_modules-1) {
+           response->print(",");
+        }
+      }//end for i
+      response->print("]");
+
+      //end of a row of data
+      response->print("}");
+      if (row!=rowsFound-1) {
+        response->println(",");
+      }
+
+    }//end for row
+
+response->print("]}");
+  request->send(response);
+}
+
+
 
 void DIYBMSServer::generateUUID() {
     //Serial1.print("generateUUID=");
@@ -438,82 +566,6 @@ void DIYBMSServer::identifyModule(AsyncWebServerRequest *request) {
 }
 
 
-void DIYBMSServer::historicfiles(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("application/json");
-
-  DynamicJsonDocument doc(2048);
-  JsonObject rootJson = doc.to<JsonObject>();
-
-  FSInfo fs_info;
-  SPIFFS.info(fs_info);
-
-  rootJson["totalBytes"]=fs_info.totalBytes;
-  rootJson["usedBytes"]=fs_info.usedBytes;
-  //rootJson["blockSize"]=fs_info.blockSize;
-  //rootJson["pageSize"]=fs_info.pageSize;
-  //rootJson["maxOpenFiles"]=fs_info.maxOpenFiles;
-  //rootJson["maxPathLength"]=fs_info.maxPathLength;
-
-  String str = "";
-  Dir dir = SPIFFS.openDir("/");
-  JsonArray fileArray = rootJson.createNestedArray("files");
-  while (dir.next()) {
-    JsonObject f = fileArray.createNestedObject();
-    f["file"]=dir.fileName();
-    f["size"]=dir.fileSize();
-  }
-
-  serializeJson(doc, *response);
-  request->send(response);
-}
-
-void DIYBMSServer::history(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("application/json");
-
-//Create our own JSON format so we can stream the data out
-  response->print("{\"history\":[");
-
-  SPIFFSLogData<HistoricCellDataBank> data[10];
-
-  //The last row
-  time_t now = time(nullptr);
-
-  uint8_t bank = 0;
-
-    const size_t rowCount = historicBank0.rowCount(now);
-    size_t rowsFound=historicBank0.readRows(&data[0], now, rowCount - 10, 10);
-
-    for (size_t row = 0; row < rowsFound; row++) {
-      //Start of a row of data
-          response->print("{");
-      response->printf("\"timeUTC\":%lu,",data[row].timestampUTC);
-
-      response->print("\"data\":[");
-      for (uint16_t i = 0; i < maximum_cell_modules; i++) {
-        response->print("{");
-        //JsonObject cell = ba.createNestedObject();
-        response->printf("\"v\":%u,",data[row].data.allCells[i].voltagemV);
-        response->printf("\"i\":%i,",data[row].data.allCells[i].internalTemp);
-        response->printf("\"e\":%i,",data[row].data.allCells[i].externalTemp);
-        response->printf("\"s\":%u",data[row].data.allCells[i].statusBits);
-        response->print("}");
-        if (i!=maximum_cell_modules-1) {
-           response->print(",");
-        }
-      }//end for i
-      response->print("]");
-
-      //end of a row of data
-      response->print("}");
-      if (row!=rowsFound-1) {
-        response->println(",");
-      }
-
-    }//end for row
-
-response->print("]}");
-  request->send(response);
-}
 
 
 uint16_t DIYBMSServer::minutesSinceMidnight() {
@@ -781,8 +833,9 @@ void DIYBMSServer::StartServer(AsyncWebServer *webserver) {
   _myserver->on("/identifyModule.json", HTTP_GET, DIYBMSServer::identifyModule);
   _myserver->on("/settings.json", HTTP_GET, DIYBMSServer::settings);
   _myserver->on("/rules.json", HTTP_GET, DIYBMSServer::rules);
-  _myserver->on("/historicfiles.json", HTTP_GET, DIYBMSServer::historicfiles);
   _myserver->on("/history.json", HTTP_GET, DIYBMSServer::history);
+  _myserver->on("/historysummary.json", HTTP_GET, DIYBMSServer::historysummary);
+
 
   //POST method endpoints
   _myserver->on("/savesetting.json", HTTP_POST, DIYBMSServer::saveSetting);
