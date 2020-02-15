@@ -389,6 +389,8 @@ var g2=null;
 var g3=null;
 var XSS_KEY='%XSS_KEY%';
 
+var historydata=[];
+
 function identifyModule(button, bank, module) {
   //Populate settings div
   $.getJSON( "identifyModule.json",
@@ -665,6 +667,24 @@ function countdown() {
   $("#refreshbar").width('100%%').animate({ width: '-=100%%' },{ duration:4000, complete: countdown, queue:false});
 }
 
+
+function getHistoricDataRecursive(dateutc, startRow, maxRows) {
+  //console.log(dateutc, startRow, maxRows);
+
+  if (startRow>=maxRows) {
+    return $.Deferred().resolve().promise();
+  }
+
+  return $.getJSON( "history.json",{ dateutc: dateutc, start: startRow })
+  .done(function(data) {
+    historydata.push(data.history);
+  })
+  .fail(function() {console.log("error");})
+  .then(function() {
+      return getHistoricDataRecursive(dateutc, startRow+60, maxRows);
+  });
+}
+
 $(function() {
   //On page ready
   countdown();
@@ -727,11 +747,12 @@ $(function() {
     //Clear select options
     $("#hfilelist").find('option').remove().end();
 
-    $.getJSON( "historicfiles.json",
+    $.getJSON( "historysummary.json",
       function(data) {
 
         $.each(data.files, function(index2, f) {
-          $("#hfilelist").append('<option value="'+f.file+'">'+f.file+'   ('+f.size+')</option>');
+          var date=new Date(f.timeUTC * 1000);;
+          $("#hfilelist").append('<option value="'+f.timeUTC+'" data-rowcount="'+f.rowCount+'">'+ date.toUTCString() +'</option>');
         });
 
       }).fail(function() {} );
@@ -741,62 +762,74 @@ $(function() {
 
   $("#hfilelist").change(function() {
 
-    $.getJSON( "history.json",
-      function(data) {
+    var maxRows=$("#hfilelist option:selected").data("rowcount");
 
-        var min=999999;
-        var max=0;
-        var values=[];
 
-        $.each(data.history, function(index2, cell) {
+    //getHistoricDataRecursive($("#hfilelist").val(), 0, maxRows);
 
-          var v=[];
 
-          var d=new Date(1000*cell.timeUTC);
-          v.push(d.toISOString());
-          for (i = 0; i < cell.data.length; i++) {
-            v.push(cell.data[i].v/1000);
+ getHistoricDataRecursive($("#hfilelist").val(), 0, maxRows).then(
 
-            if (cell.data[i].v>max) max=cell.data[i].v;
-            if (min>cell.data[i].v) min=cell.data[i].v;
-          }
+    function() {
+      // something to do when it's all over.
 
-          values.push(v);
+    console.log(historydata);
 
-        });
 
-        max=(max/1000)+0.5;
+    //DRAW GRAPH
+    var min=999999;
+    var max=0;
+    var values=[];
 
-        if (min>0) {
-          min=(min/1000)-0.5;
+    $.each(historydata, function(index3, block) {
+
+      $.each(block, function(index2, cell) {
+        var v=[];
+        var d=new Date(1000*cell.timeUTC);
+        v.push(d.toISOString());
+        for (i = 0; i < cell.data.length; i++) {
+          v.push(cell.data[i]/1000);
+          if (cell.data[i]>max) max=cell.data[i];
+          if (min>cell.data[i]) min=cell.data[i];
         }
+        values.push(v);
+      });
+    });
 
-        //console.log(values);
+    historydata=[];
 
-            var option = {
-              xAxis: {type:'time' },
-              yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: { show: false },position:'left', axisLabel: { formatter:'{value}V' } },
-              series: [
-              {name: 'cell0',type:'line',encode:{x: 'timestamp',y: 'cell0'}},
-              {name: 'cell1',type:'line',encode:{x: 'timestamp',y: 'cell1'}},
-              {name: 'cell2',type:'line',encode:{x: 'timestamp',y: 'cell2'}},
-              {name: 'cell3',type:'line',encode:{x: 'timestamp',y: 'cell3'}},
-              {name: 'cell4',type:'line',encode:{x: 'timestamp',y: 'cell4'}},
-              {name: 'cell5',type:'line',encode:{x: 'timestamp',y: 'cell5'}},
-              {name: 'cell6',type:'line',encode:{x: 'timestamp',y: 'cell6'}},
-              {name: 'cell7',type:'line',encode:{x: 'timestamp',y: 'cell7'}},
-              {name: 'cell8',type:'line',encode:{x: 'timestamp',y: 'cell8'}}
-              ],
-              dataset:{
-                source:values,
-                dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8'],
-              }
-           };
+    max=(max/1000)+0.5;
 
-           g3 = echarts.init(document.getElementById('historygraph'));
-           g3.setOption(option);
+    if (min>0) {
+      min=(min/1000)-0.5;
+    }
 
-      }) .fail(function() {console.log( "error" );});
+    //console.log(values);
+
+        var option = {
+          xAxis: {type:'time' },
+          yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: { show: false },position:'left', axisLabel: { formatter:'{value}V' } },
+          series: [
+          {name: 'cell0',type:'line',encode:{x: 'timestamp',y: 'cell0'}},
+          {name: 'cell1',type:'line',encode:{x: 'timestamp',y: 'cell1'}},
+          {name: 'cell2',type:'line',encode:{x: 'timestamp',y: 'cell2'}},
+          {name: 'cell3',type:'line',encode:{x: 'timestamp',y: 'cell3'}},
+          {name: 'cell4',type:'line',encode:{x: 'timestamp',y: 'cell4'}},
+          {name: 'cell5',type:'line',encode:{x: 'timestamp',y: 'cell5'}},
+          {name: 'cell6',type:'line',encode:{x: 'timestamp',y: 'cell6'}},
+          {name: 'cell7',type:'line',encode:{x: 'timestamp',y: 'cell7'}},
+          {name: 'cell8',type:'line',encode:{x: 'timestamp',y: 'cell8'}}
+          ],
+          dataset:{
+            source:values,
+            dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8'],
+          }
+       };
+
+       g3 = echarts.init(document.getElementById('historygraph'));
+       g3.setOption(option);
+
+     });
 
   });
 
