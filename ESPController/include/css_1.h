@@ -56,4 +56,6 @@ h2 { margin:0; }
   .logocontainer {width:80px;height:28px;}
 }
 
+.waitbar {display:none; width:0%; background-color: #D3D3D3; margin:0; padding:4px 4px 4px 4px; overflow:hidden; text-align:center; }
+
 )=====";

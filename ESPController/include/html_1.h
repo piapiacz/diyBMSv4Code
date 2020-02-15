@@ -53,9 +53,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
 <div class="page" id="historyPage">
     <h1>History</h1>
     <form id="historyForm" method="POST" action="XXXXX.json" autocomplete="off"><div class="settings"><div><label for="hfilelist">Select historic data to view</label><select id="hfilelist" name="hfilelist"></select></div></div></form>
-    <h2>Source Code</h2>
-    <a href="history.json" target="_blank">history.json</a>
-    <a href="historysummary.json" target="_blank">historysummary.json</a>
+    <div id="historyloading" class="waitbar" style="width:0px;">Loading historic data...</div>
 
     <div class="graphs" style="">
         <div id="historygraph" style="width:100%%; height:100%%;"></div>
@@ -678,6 +676,9 @@ function getHistoricDataRecursive(dateutc, startRow, maxRows) {
   return $.getJSON( "history.json",{ dateutc: dateutc, start: startRow })
   .done(function(data) {
     historydata.push(data.history);
+
+    $("#historyloading").css("width", Math.round(startRow/maxRows*100) +"%");
+
   })
   .fail(function() {console.log("error");})
   .then(function() {
@@ -764,17 +765,16 @@ $(function() {
 
     var maxRows=$("#hfilelist option:selected").data("rowcount");
 
-
-    //getHistoricDataRecursive($("#hfilelist").val(), 0, maxRows);
-
+    $("#historyloading").show();
+    $("#historyloading").css("width","0%");
+    historydata=[];
 
  getHistoricDataRecursive($("#hfilelist").val(), 0, maxRows).then(
 
     function() {
       // something to do when it's all over.
 
-    console.log(historydata);
-
+      $("#historyloading").hide();
 
     //DRAW GRAPH
     var min=999999;
