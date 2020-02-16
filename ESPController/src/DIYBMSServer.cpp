@@ -43,10 +43,6 @@ String DIYBMSServer::UUIDString;
 
 #define REBOOT_COUNT_DOWN 2000
 
-
-
-
-
 void DIYBMSServer::history(AsyncWebServerRequest *request)
 {
   uint8_t batchsize = 10;
@@ -70,13 +66,13 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 		SPIFFSLogData<HistoricCellDataBank> data[batchsize];
 		const size_t rowCount = historicBank0.rowCount(now);
 
-    size_t end=start+6*batchsize;
+    size_t end=start+3*batchsize;
 
     if (end>rowCount) {
       end=rowCount;
     }
 
-    for (size_t i = 0; i < 6; i++) {
+    for (size_t i = 0; i < 3; i++) {
 
 		if (start < rowCount)
 		{

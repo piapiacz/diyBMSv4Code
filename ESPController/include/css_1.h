@@ -58,4 +58,22 @@ h2 { margin:0; }
 
 .waitbar {display:none; width:0%; background-color: #D3D3D3; margin:0; padding:4px 4px 4px 4px; overflow:hidden; text-align:center; }
 
+.historybut {
+    font-family: Arial,Helvetica,sans-serif;
+    border: none;
+    color: white;
+    background-color: #1e90ff;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size:12px;
+    width: 56pt;
+    padding:8px;
+    margin-right:2px;
+}
+
+.historybut.selected {
+  background-color: #dddddd;
+}
+
 )=====";

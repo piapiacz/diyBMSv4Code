@@ -52,8 +52,10 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
 
 <div class="page" id="historyPage">
     <h1>History</h1>
-    <form id="historyForm" method="POST" action="XXXXX.json" autocomplete="off"><div class="settings"><div><label for="hfilelist">Select historic data to view</label><select id="hfilelist" name="hfilelist"></select></div></div></form>
-    <div id="historyloading" class="waitbar" style="width:0px;">Loading historic data...</div>
+    <form id="historyForm" method="POST" action="" autocomplete="off"><div class="settings"><div><label for="hfilelist">Select historic data to view</label><select id="hfilelist" name="hfilelist"></select></div></div></form>
+
+    <div id="historytimebuttons">
+    </div>
 
     <div class="graphs" style="">
         <div id="historygraph" style="width:100%%; height:100%%;"></div>
@@ -382,652 +384,788 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
 </div>
 
 <script type="text/javascript">
-var g1=null;
-var g2=null;
-var g3=null;
-var XSS_KEY='%XSS_KEY%';
-
-var historydata=[];
+var g1 = null;
+var g2 = null;
+var g3 = null;
+var XSS_KEY = '%XSS_KEY%';
+var historydata = [];
 
 function identifyModule(button, bank, module) {
-  //Populate settings div
-  $.getJSON( "identifyModule.json",
-  {       b: bank,       m: module    },
-    function(data) {    }
-  ).fail(function() {   $("#iperror").show();});
+	$.getJSON("identifyModule.json", {b: bank , m: module}, function (data) {}).fail(function () {$("#iperror").show();	});
 }
 
 function configureModule(button, bank, module) {
-
-  //Select correct row in table
-  $(button).parent().parent().parent().find(".selected").removeClass("selected");
-  $(button).parent().parent().addClass("selected");
-
-  //Populate settings div
-  $("#settingConfig h2").html("Settings for module bank:"+bank+" module:"+module);
-  $("#settingConfig").show();
-
-  $.getJSON( "modules.json",
-  {
-       b: bank,
-       m: module
-    },
-    function(data) {
-
-      var div=$("#settingConfig .settings");
-      $('#b').val(data.settings.bank);
-      $('#m').val(data.settings.module);
-
-      if (data.settings.Cached==true){
-        $('#BypassOverTempShutdown').val(data.settings.BypassOverTempShutdown);
-        $('#BypassThresholdmV').val(data.settings.BypassThresholdmV);
-        $('#Calib').val(data.settings.Calib.toFixed(4));
-        $('#ExtBCoef').val(data.settings.ExtBCoef);
-        $('#IntBCoef').val(data.settings.IntBCoef);
-        $('#LoadRes').val(data.settings.LoadRes.toFixed(2));
-        $('#mVPerADC').val(data.settings.mVPerADC.toFixed(2));
-        $('#movetobank').val(data.settings.bank);
-
-        $('#settingsForm').show();
-        $('#waitforsettings').hide();
-      } else {
-        //Data not ready yet
-        $('#settingsForm').hide();
-        $('#waitforsettings').show();
-        //Call back in 5 seconds to refresh page - this is a bad idea!
-        //setTimeout(configureModule, 5000, button, bank, module);
-      }
-    }).fail(function() {
-     $("#iperror").show();
-  });
+	//Select correct row in table
+	$(button).parent().parent().parent().find(".selected").removeClass("selected");
+	$(button).parent().parent().addClass("selected");
+	//Populate settings div
+	$("#settingConfig h2").html("Settings for module bank:" + bank + " module:" + module);
+	$("#settingConfig").show();
+	$.getJSON("modules.json", {b: bank	, m: module	}, function (data) {
+		var div = $("#settingConfig .settings");
+		$('#b').val(data.settings.bank);
+		$('#m').val(data.settings.module);
+		if (data.settings.Cached == true) {
+			$('#BypassOverTempShutdown').val(data.settings.BypassOverTempShutdown);
+			$('#BypassThresholdmV').val(data.settings.BypassThresholdmV);
+			$('#Calib').val(data.settings.Calib.toFixed(4));
+			$('#ExtBCoef').val(data.settings.ExtBCoef);
+			$('#IntBCoef').val(data.settings.IntBCoef);
+			$('#LoadRes').val(data.settings.LoadRes.toFixed(2));
+			$('#mVPerADC').val(data.settings.mVPerADC.toFixed(2));
+			$('#movetobank').val(data.settings.bank);
+			$('#settingsForm').show();
+			$('#waitforsettings').hide();
+		} else {
+			//Data not ready yet
+			$('#settingsForm').hide();
+			$('#waitforsettings').show();
+			//Call back in 5 seconds to refresh page - this is a bad idea!
+			//setTimeout(configureModule, 5000, button, bank, module);
+		}
+	}).fail(function () {
+		$("#iperror").show();
+	});
 }
 
 function queryBMS() {
-  $.getJSON( "monitor.json", function( jsondata ) {
-    var labels = [];
-    var cells = [];
-    var bank = [];
-    var voltages = [];
-    var voltagesmin = [];
-    var voltagesmax = [];
-    var tempint = [];
-    var tempext = [];
-
-    var badpktcount = [];
-
-    var voltage = [0.0, 0.0, 0.0, 0.0];
-    //Not currently supported
-    var current = [0.0, 0.0, 0.0, 0.0];
-
-    var bankmin = [5000,5000,5000,5000];
-    var bankmax = [0.0,0.0,0.0,0.0];
-
-    for (var bankNumber = 0; bankNumber < jsondata.banks; bankNumber++) {
-        //Need to cater for banks of cells
-        $.each(jsondata.bank[bankNumber], function(index, value) {
-            var color = value.bypass ? "#B03A5B" : "#1e90ff";
-
-            var v = (parseFloat(value.v) / 1000.0);
-
-            voltages.push({ value: v, itemStyle: { color: color } });
-
-            voltagesmin.push((parseFloat(value.minv) / 1000.0));
-            voltagesmax.push((parseFloat(value.maxv) / 1000.0));
-
-            //TODO: This looks incorrect needs to take into account bank/cell configs
-            bank.push(bankNumber);
-            cells.push(index);
-
-            badpktcount.push(value.badpkt);
-
-            labels.push(bankNumber + "/" + index);
-
-            color = value.bypasshot ? "#B03A5B" : "#1e90ff";
-            tempint.push({ value: value.int, itemStyle: { color: color } });
-
-            tempext.push(value.ext == -40 ? 0 : value.ext);
-
-            var bIndex=jsondata.parallel ? bankNumber:0;
-            voltage[bIndex] += v;
-            if (value.v<bankmin[bIndex]) {bankmin[bIndex]=value.v;}
-            if (value.v>bankmax[bIndex]) {bankmax[bIndex]=value.v;}
-        });
-    }
-
-    //Ignore and hide any errors which are zero
-    if (jsondata.monitor.badcrc==0) { $("#badcrc").hide(); } else { $("#badcrc .v").html(jsondata.monitor.badcrc);$("#badcrc").show();}
-    if (jsondata.monitor.badpkt==0) { $("#badpkt").hide(); } else { $("#badpkt .v").html(jsondata.monitor.badpkt);$("#badpkt").show();}
-    if (jsondata.monitor.ignored==0) { $("#ignored").hide(); } else { $("#ignored .v").html(jsondata.monitor.ignored);$("#ignored").show();}
-
-    for (var bankNumber = 0; bankNumber < 4; bankNumber++) {
-      if (voltage[bankNumber]>0) {
-        $("#voltage"+(bankNumber+1)+" .v").html(voltage[bankNumber].toFixed(2)+"V");
-        var range=bankmax[bankNumber]-bankmin[bankNumber];
-        $("#range"+(bankNumber+1)+" .v").html(range+"mV");
-
-        $("#voltage"+(bankNumber+1)).show();
-        $("#range"+(bankNumber+1)).show();
-      } else {
-        $("#voltage"+(bankNumber+1)).hide();
-        $("#range"+(bankNumber+1)).hide();
-      }
-
-    }
-
-    //Not currently supported
-    $("#current").hide();
-    $("#current .v").html(current[0].toFixed(2));
-
-    if (jsondata.monitor.commserr==true) {
-      $("#commserr").show();
-    } else {
-      $("#commserr").fadeOut();
-    }
-
-    $("#iperror").hide();
-
-    if($('#modulesPage').is(':visible')){
-        var tbody=$("#modulesRows");
-
-        if ($('#modulesRows div').length!=cells.length) {
-            $("#settingConfig").hide();
-
-            //Add rows if they dont exist (or incorrect amount)
-            $(tbody).find("div").remove();
-
-            $.each(cells, function( index, value ) {
-                $(tbody).append("<div><span>"
-                +bank[index]
-                +"</span><span>"+value+"</span><span></span><span class='hide'></span><span class='hide'></span>"
-                +"<span class='hide'></span><span class='hide'></span><span class='hide'></span>"
-                +"<span><button type='button' onclick='return identifyModule(this,"+bank[index]+","+value+");'>Identify</button></span>"
-                +"<span><button type='button' onclick='return configureModule(this,"+bank[index]+","+value+");'>Configure</button></span></div>")
-            });
-        }
-
-        var rows=$(tbody).find("div");
-
-        $.each(cells, function( index, value ) {
-            var columns=$(rows[index]).find("span");
-
-            //$(columns[0]).html(value);
-            $(columns[2]).html(voltages[index].value.toFixed(3));
-            $(columns[3]).html(voltagesmin[index].toFixed(3));
-            $(columns[4]).html(voltagesmax[index].toFixed(3));
-            $(columns[5]).html(tempint[index].value);
-            $(columns[6]).html(tempext[index]);
-            $(columns[7]).html(badpktcount[index]);
-        });
-    }
-
-
-  if($('#homePage').is(':visible')){
-
-      if (g1==null) {
-        // based on prepared DOM, initialize echarts instance
-        g1 = echarts.init(document.getElementById('graph1'));
-
-        var labelOption = {
-            normal: {
-                show: true,
-                position: 'insideBottom',
-                distance: 15,
-                align: 'left',
-                verticalAlign: 'middle',
-                rotate: 90,
-                formatter: '{c}V',
-                fontSize: 24
-            }
-        };
-
-        var labelOption3 = {
-            normal: {
-                show: true,
-                position: 'top',
-                distance:5,
-                formatter: '{c}V',
-                fontSize: 14
-            }
-        };
-
-        var labelOption4 = {
-            normal: {
-                show: true,
-                position: 'bottom',
-                distance:5,
-                formatter: '{c}V',
-                fontSize: 14
-            }
-        };
-
-
-            var labelOption2 = {
-                  normal: {
-                      show: true,
-                      position: 'insideBottom',
-                      distance: 15,
-                      align: 'left',
-                      verticalAlign: 'middle',
-                      rotate: 90,
-                      formatter: '{c}°C',
-                      fontSize: 22
-                  }
-              };
-        // specify chart configuration item and data
-        var option = {
-          color: ['#003366', '#006699', '#4cabce'],
-          tooltip: { trigger: 'axis', axisPointer: { type: 'cross', crossStyle: { color: '#999' } } },
-            legend: { data:['Voltage'] },
-            xAxis: [{gridIndex: 0,type:'category' },{  gridIndex: 1,type:'category' }],
-            yAxis: [
-              {gridIndex: 0,name:'Volts',type:'value',min:2.5,max:4.5,interval:0.25,position:'left', axisLabel: { formatter: '{value}V' }}
-              ,{gridIndex: 1,name:'Temperature',type:'value',interval:10,position:'right'
-              ,axisLabel:{ formatter: '{value} °C' }
-              ,axisLine:{show:false, lineStyle:{type:'dotted'} } } ]
-            ,series: [{ name: 'Voltage', type: 'bar', data: [], label: labelOption
-           }
-                ,{ name: 'Min V', type: 'line', data: [], label: labelOption4,symbolSize: 20, symbol:['circle'], itemStyle:{normal:{lineStyle:{color:'transparent',type:'dotted'}} } }
-                ,{ name: 'Max V', type: 'line', data: [], label: labelOption3,symbolSize: 20, symbol:['triangle'], itemStyle:{normal:{lineStyle:{color:'transparent',type:'dotted'}} } }
-                ,{xAxisIndex:1, yAxisIndex:1, name:'BypassTemperature',type:'bar', data: [], label: labelOption2 }
-                ,{xAxisIndex:1, yAxisIndex:1, name:'CellTemperature',type:'bar',data: [], label: labelOption2 }
-            ],
-            grid: [{containLabel:false,
-              left:'5%%',
-              right:'5%%',
-              bottom:'32%%'},{containLabel:false,
-                left:'5%%',
-                right:'5%%',
-                top:'78%%'}],
-        };
-
-        // use configuration item and data specified to show chart
-        g1.setOption(option);
-
-      } else {
-        g1.setOption({
-            xAxis: { data: labels },
-            series: [{ name: 'Voltage', data: voltages }
-            ,{ name: 'Min V', data: voltagesmin }
-            ,{ name: 'Max V', data: voltagesmax }
-            ,{ name: 'BypassTemperature', data: tempint }
-            ,{ name: 'CellTemperature', data: tempext }]
-        });
-      }
-  }
-
-  }).fail(function() {
-     $("#iperror").show();
-  });
+	$.getJSON("monitor.json", function (jsondata) {
+		var labels = [];
+		var cells = [];
+		var bank = [];
+		var voltages = [];
+		var voltagesmin = [];
+		var voltagesmax = [];
+		var tempint = [];
+		var tempext = [];
+		var badpktcount = [];
+		var voltage = [0.0, 0.0, 0.0, 0.0];
+		//Not currently supported
+		var current = [0.0, 0.0, 0.0, 0.0];
+		var bankmin = [5000, 5000, 5000, 5000];
+		var bankmax = [0.0, 0.0, 0.0, 0.0];
+		for (var bankNumber = 0; bankNumber < jsondata.banks; bankNumber++) {
+			//Need to cater for banks of cells
+			$.each(jsondata.bank[bankNumber], function (index, value) {
+				var color = value.bypass ? "#B03A5B" : "#1e90ff";
+				var v = (parseFloat(value.v) / 1000.0);
+				voltages.push({
+					value: v
+					, itemStyle: {
+						color: color
+					}
+				});
+				voltagesmin.push((parseFloat(value.minv) / 1000.0));
+				voltagesmax.push((parseFloat(value.maxv) / 1000.0));
+				//TODO: This looks incorrect needs to take into account bank/cell configs
+				bank.push(bankNumber);
+				cells.push(index);
+				badpktcount.push(value.badpkt);
+				labels.push(bankNumber + "/" + index);
+				color = value.bypasshot ? "#B03A5B" : "#1e90ff";
+				tempint.push({
+					value: value.int
+					, itemStyle: {
+						color: color
+					}
+				});
+				tempext.push(value.ext == -40 ? 0 : value.ext);
+				var bIndex = jsondata.parallel ? bankNumber : 0;
+				voltage[bIndex] += v;
+				if (value.v < bankmin[bIndex]) {
+					bankmin[bIndex] = value.v;
+				}
+				if (value.v > bankmax[bIndex]) {
+					bankmax[bIndex] = value.v;
+				}
+			});
+		}
+		//Ignore and hide any errors which are zero
+		if (jsondata.monitor.badcrc == 0) {
+			$("#badcrc").hide();
+		} else {
+			$("#badcrc .v").html(jsondata.monitor.badcrc);
+			$("#badcrc").show();
+		}
+		if (jsondata.monitor.badpkt == 0) {
+			$("#badpkt").hide();
+		} else {
+			$("#badpkt .v").html(jsondata.monitor.badpkt);
+			$("#badpkt").show();
+		}
+		if (jsondata.monitor.ignored == 0) {
+			$("#ignored").hide();
+		} else {
+			$("#ignored .v").html(jsondata.monitor.ignored);
+			$("#ignored").show();
+		}
+		for (var bankNumber = 0; bankNumber < 4; bankNumber++) {
+			if (voltage[bankNumber] > 0) {
+				$("#voltage" + (bankNumber + 1) + " .v").html(voltage[bankNumber].toFixed(2) + "V");
+				var range = bankmax[bankNumber] - bankmin[bankNumber];
+				$("#range" + (bankNumber + 1) + " .v").html(range + "mV");
+				$("#voltage" + (bankNumber + 1)).show();
+				$("#range" + (bankNumber + 1)).show();
+			} else {
+				$("#voltage" + (bankNumber + 1)).hide();
+				$("#range" + (bankNumber + 1)).hide();
+			}
+		}
+		//Not currently supported
+		$("#current").hide();
+		$("#current .v").html(current[0].toFixed(2));
+		if (jsondata.monitor.commserr == true) {
+			$("#commserr").show();
+		} else {
+			$("#commserr").fadeOut();
+		}
+		$("#iperror").hide();
+		if ($('#modulesPage').is(':visible')) {
+			var tbody = $("#modulesRows");
+			if ($('#modulesRows div').length != cells.length) {
+				$("#settingConfig").hide();
+				//Add rows if they dont exist (or incorrect amount)
+				$(tbody).find("div").remove();
+				$.each(cells, function (index, value) {
+					$(tbody).append("<div><span>" + bank[index] + "</span><span>" + value + "</span><span></span><span class='hide'></span><span class='hide'></span>" + "<span class='hide'></span><span class='hide'></span><span class='hide'></span>" + "<span><button type='button' onclick='return identifyModule(this," + bank[index] + "," + value + ");'>Identify</button></span>" + "<span><button type='button' onclick='return configureModule(this," + bank[index] + "," + value + ");'>Configure</button></span></div>")
+				});
+			}
+			var rows = $(tbody).find("div");
+			$.each(cells, function (index, value) {
+				var columns = $(rows[index]).find("span");
+				//$(columns[0]).html(value);
+				$(columns[2]).html(voltages[index].value.toFixed(3));
+				$(columns[3]).html(voltagesmin[index].toFixed(3));
+				$(columns[4]).html(voltagesmax[index].toFixed(3));
+				$(columns[5]).html(tempint[index].value);
+				$(columns[6]).html(tempext[index]);
+				$(columns[7]).html(badpktcount[index]);
+			});
+		}
+		if ($('#homePage').is(':visible')) {
+			if (g1 == null) {
+				// based on prepared DOM, initialize echarts instance
+				g1 = echarts.init(document.getElementById('graph1'));
+				var labelOption = {
+					normal: {
+						show: true
+						, position: 'insideBottom'
+						, distance: 15
+						, align: 'left'
+						, verticalAlign: 'middle'
+						, rotate: 90
+						, formatter: '{c}V'
+						, fontSize: 24
+					}
+				};
+				var labelOption3 = {
+					normal: {
+						show: true
+						, position: 'top'
+						, distance: 5
+						, formatter: '{c}V'
+						, fontSize: 14
+					}
+				};
+				var labelOption4 = {
+					normal: {
+						show: true
+						, position: 'bottom'
+						, distance: 5
+						, formatter: '{c}V'
+						, fontSize: 14
+					}
+				};
+				var labelOption2 = {
+					normal: {
+						show: true
+						, position: 'insideBottom'
+						, distance: 15
+						, align: 'left'
+						, verticalAlign: 'middle'
+						, rotate: 90
+						, formatter: '{c}°C'
+						, fontSize: 22
+					}
+				};
+				// specify chart configuration item and data
+				var option = {
+					color: ['#003366', '#006699', '#4cabce']
+					, tooltip: {
+						trigger: 'axis'
+						, axisPointer: {
+							type: 'cross'
+							, crossStyle: {
+								color: '#999'
+							}
+						}
+					}
+					, legend: {
+						data: ['Voltage']
+					}
+					, xAxis: [{
+						gridIndex: 0
+						, type: 'category'
+					}, {
+						gridIndex: 1
+						, type: 'category'
+					}]
+					, yAxis: [
+					{
+						gridIndex: 0
+						, name: 'Volts'
+						, type: 'value'
+						, min: 2.5
+						, max: 4.5
+						, interval: 0.25
+						, position: 'left'
+						, axisLabel: {
+							formatter: '{value}V'
+						}
+					}, {
+						gridIndex: 1
+						, name: 'Temperature'
+						, type: 'value'
+						, interval: 10
+						, position: 'right'
+						, axisLabel: {
+							formatter: '{value} °C'
+						}
+						, axisLine: {
+							show: false
+							, lineStyle: {
+								type: 'dotted'
+							}
+						}
+					}]
+					, series: [{
+						name: 'Voltage'
+						, type: 'bar'
+						, data: []
+						, label: labelOption
+					}, {
+						name: 'Min V'
+						, type: 'line'
+						, data: []
+						, label: labelOption4
+						, symbolSize: 20
+						, symbol: ['circle']
+						, itemStyle: {
+							normal: {
+								lineStyle: {
+									color: 'transparent'
+									, type: 'dotted'
+								}
+							}
+						}
+					}, {
+						name: 'Max V'
+						, type: 'line'
+						, data: []
+						, label: labelOption3
+						, symbolSize: 20
+						, symbol: ['triangle']
+						, itemStyle: {
+							normal: {
+								lineStyle: {
+									color: 'transparent'
+									, type: 'dotted'
+								}
+							}
+						}
+					}, {
+						xAxisIndex: 1
+						, yAxisIndex: 1
+						, name: 'BypassTemperature'
+						, type: 'bar'
+						, data: []
+						, label: labelOption2
+					}, {
+						xAxisIndex: 1
+						, yAxisIndex: 1
+						, name: 'CellTemperature'
+						, type: 'bar'
+						, data: []
+						, label: labelOption2
+					}]
+					, grid: [{
+						containLabel: false
+						, left: '5%%'
+						, right: '5%%'
+						, bottom: '32%%'
+					}, {
+						containLabel: false
+						, left: '5%%'
+						, right: '5%%'
+						, top: '78%%'
+					}]
+				, };
+				// use configuration item and data specified to show chart
+				g1.setOption(option);
+			} else {
+				g1.setOption({
+					xAxis: {
+						data: labels
+					}
+					, series: [{
+						name: 'Voltage'
+						, data: voltages
+					}, {
+						name: 'Min V'
+						, data: voltagesmin
+					}, {
+						name: 'Max V'
+						, data: voltagesmax
+					}, {
+						name: 'BypassTemperature'
+						, data: tempint
+					}, {
+						name: 'CellTemperature'
+						, data: tempext
+					}]
+				});
+			}
+		}
+	}).fail(function () {
+		$("#iperror").show();
+	});
 }
 
 function countdown() {
-  queryBMS();
-  $("#refreshbar").width('100%%').animate({ width: '-=100%%' },{ duration:4000, complete: countdown, queue:false});
+	queryBMS();
+	$("#refreshbar").width('100%%').animate({width: '-=100%%'},{duration:4000,complete:countdown,queue:false});
 }
 
-
 function getHistoricDataRecursive(dateutc, startRow, maxRows) {
-  if (startRow>=maxRows) {
+  if (startRow >= maxRows) {
     return $.Deferred().resolve().promise();
   }
 
-  return $.getJSON( "history.json",{ dateutc: dateutc, start: startRow })
-  .done(function(data) {
-    historydata.push(data.history);
-
-    $("#historyloading").css("width", Math.round(startRow/maxRows*100) +"%");
-
-  })
-  .fail(function() {console.log("error");})
-  .then(function() {
-      return getHistoricDataRecursive(dateutc, startRow+60, maxRows);
+  return $.getJSON("history.json", {	dateutc: dateutc, start: startRow  })
+  .done(function (data) {
+  	historydata.push(data.history);
+  }).fail(function () {
+  	console.log("error");
+  }).then(function () {
+  	return getHistoricDataRecursive(dateutc,startRow+30, maxRows);
   });
 }
 
-$(function() {
-  //On page ready
-  countdown();
+function selectHistoryTimePeriod() {
+	var startRow = $(this).data("row");
+	var maxRows = $("#hfilelist option:selected").data("rowcount");
+	historydata = [];
+  $(".historybut").removeClass("selected");
+  $(this).addClass("selected");
 
-  //Populate all the setting rules with relay select lists
-  $.each($(".settings .rule")  , function(index, value) {
-    $.each([ 1,2,3,4 ], function( index1, relay ) {
-      $(value).append( '<select id="rule'+(index+1)+'relay'+relay+'" name="rule'+(index+1)+'relay'+relay+'"><option>On</option><option>Off</option><option>X</option></select>' );
-    });
+  if (g3!=null) {
+    g3.clear();
   }
-  );
 
-
-
-  $('#CalculateCalibration').click(function() {
-    var currentReading=parseFloat($("#modulesRows > div.selected > span:nth-child(3)").text());
-    var currentCalib=parseFloat($("#Calib").val());
-    var actualV=parseFloat($("#ActualVoltage").val());
-    var result=(currentCalib/currentReading)*actualV;
-    $("#Calib").val(result.toFixed(4));
-    return true;
-  });
-
-  $("#home").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-    $("#homePage").show();
-    return true;
-  });
-
-  $("#about").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-    $("#aboutPage").show();
-    return true;
-  });
-
-  $("#modules").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-
-    //Remove existing table
-    $("#modulesRows").find("div").remove();
-
-    $("#settingConfig").hide();
-    $("#modulesPage").show();
-    return true;
-  });
-
-  $("#history").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-
-    $("#historyPage").show();
-
-    //Clear select options
-    $("#hfilelist").find('option').remove().end();
-
-    $.getJSON( "historysummary.json",
-      function(data) {
-
-        $.each(data.files, function(index2, f) {
-          var date=new Date(f.timeUTC * 1000);;
-          $("#hfilelist").append('<option value="'+f.timeUTC+'" data-rowcount="'+f.rowCount+'">'+ date.toUTCString() +'</option>');
-        });
-
-      }).fail(function() {} );
-
-    return true;
-  });
-
-  $("#hfilelist").change(function() {
-
-    var maxRows=$("#hfilelist option:selected").data("rowcount");
-
-    $("#historyloading").show();
-    $("#historyloading").css("width","0%");
-    historydata=[];
-
- getHistoricDataRecursive($("#hfilelist").val(), 0, maxRows).then(
-
-    function() {
-      // something to do when it's all over.
-
-      $("#historyloading").hide();
-
-    //DRAW GRAPH
-    var min=999999;
-    var max=0;
-    var values=[];
-
-    $.each(historydata, function(index3, block) {
-
-      $.each(block, function(index2, cell) {
-        var v=[];
-        var d=new Date(1000*cell.timeUTC);
-        v.push(d.toISOString());
-        for (i = 0; i < cell.data.length; i++) {
-          v.push(cell.data[i]/1000);
-          if (cell.data[i]>max) max=cell.data[i];
-          if (min>cell.data[i]) min=cell.data[i];
-        }
-        values.push(v);
-      });
+  getHistoricDataRecursive($("#hfilelist").val(), startRow, startRow+120).then(function () {
+  // something to do when it's all over.
+  //DRAW GRAPH
+  var min = 999999;
+  var max = 0;
+  var values = [];
+  $.each(historydata, function (index3, block) {
+    $.each(block, function (index2, cell) {
+      var v = [];
+      var d = new Date(1000 * cell.timeUTC);
+      v.push(d.toISOString());
+      for (i = 0; i < cell.data.length; i++) {
+        v.push(cell.data[i] / 1000);
+        if (cell.data[i] > max) max = cell.data[i];
+        if (min > cell.data[i]) min = cell.data[i];
+      }
+      values.push(v);
     });
-
-    historydata=[];
-
-    max=(max/1000)+0.5;
-
-    if (min>0) {
-      min=(min/1000)-0.5;
-    }
-
-        var option = {
+  });
+  historydata = [];
+  max = (max / 1000) + 0.5;
+  if (min > 0) {
+    min = (min / 1000) - 0.5;
+  }
+  //HERE
+  var option = {
     toolbox: {
-        left: 'center',
-        itemSize: 25,
-        top: 55,
-        feature: {
-            dataZoom: {
-                yAxisIndex: 'none'
-            },
-            restore: {}
+      left: 'center'
+      , itemSize: 25
+      , top: 55
+      , feature: {
+        dataZoom: {
+          yAxisIndex: 'none'
         }
-    },
-          xAxis: {type:'time' },
-          yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: {show:false},position:'left', axisLabel: { formatter:'{value}V' } },
-          series: [
-          {name: 'cell0',type:'line',encode:{x:'timestamp',y: 'cell0'}},
-          {name: 'cell1',type:'line',encode:{x:'timestamp',y: 'cell1'}},
-          {name: 'cell2',type:'line',encode:{x:'timestamp',y: 'cell2'}},
-          {name: 'cell3',type:'line',encode:{x:'timestamp',y: 'cell3'}},
-          {name: 'cell4',type:'line',encode:{x:'timestamp',y: 'cell4'}},
-          {name: 'cell5',type:'line',encode:{x:'timestamp',y: 'cell5'}},
-          {name: 'cell6',type:'line',encode:{x:'timestamp',y: 'cell6'}},
-          {name: 'cell7',type:'line',encode:{x:'timestamp',y: 'cell7'}},
-          {name: 'cell8',type:'line',encode:{x:'timestamp',y: 'cell8'}},
-          {name: 'cell9',type:'line',encode:{x:'timestamp',y: 'cell9'}},
-          {name: 'cell10',type:'line',encode:{x:'timestamp',y: 'cell10'}},
-          {name: 'cell11',type:'line',encode:{x:'timestamp',y: 'cell11'}},
-          {name: 'cell12',type:'line',encode:{x:'timestamp',y: 'cell12'}},
-          {name: 'cell13',type:'line',encode:{x:'timestamp',y: 'cell13'}},
-          {name: 'cell14',type:'line',encode:{x:'timestamp',y: 'cell14'}},
-          {name: 'cell15',type:'line',encode:{x:'timestamp',y: 'cell15'}}
-          ],
-          dataset:{
-            source:values,
-            dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8', 'cell9', 'cell10', 'cell11', 'cell12', 'cell13', 'cell14', 'cell15'],
-          },
-          dataZoom: [{type: 'inside',throttle: 50}]
-       };
+        , restore: {}
+      }
+    }
+    , xAxis: {
+      type: 'time'
+      , splitLine: {
+        show: true
+      }
+    }
+    , yAxis: {
+      type: 'value'
+      , min: min
+      , max: max
+      , splitLine: {
+        show: false
+      }
+      , position: 'left'
+      , axisLabel: {
+        formatter: '{value}V'
+      }
+    }
+    , dataZoom: [{
+      type: 'slider'
+      , show: true
+      , xAxisIndex: [0]
+      , start: 1
+      , end: 30
+    }]
+    , series: [{
+      name: 'cell0'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell0'
+      }
+    }, {
+      name: 'cell1'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell1'
+      }
+    }, {
+      name: 'cell2'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell2'
+      }
+    }, {
+      name: 'cell3'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell3'
+      }
+    }, {
+      name: 'cell4'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell4'
+      }
+    }, {
+      name: 'cell5'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell5'
+      }
+    }, {
+      name: 'cell6'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell6'
+      }
+    }, {
+      name: 'cell7'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell7'
+      }
+    }, {
+      name: 'cell8'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell8'
+      }
+    }, {
+      name: 'cell9'
+      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell9'
+      }
+    }, {
+      name: 'cell10'      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell10'
+      }
+    }, {
+      name: 'cell11'      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell11'
+      }
+    }, {
+      name: 'cell12'      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell12'
+      }
+    }, {
+      name: 'cell13'      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell13'
+      }
+    }, {
+      name: 'cell14'      , type: 'line'
+      , encode: {
+        x: 'timestamp'
+        , y: 'cell14'
+      }
+    }, {
+      name: 'cell15'      , type: 'line'
+      , encode: {x: 'timestamp', y: 'cell15'
+      }
+    }]
+    , dataset: {
+      source: values
+      , dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8', 'cell9', 'cell10', 'cell11', 'cell12', 'cell13', 'cell14', 'cell15']
+    }
+  };
+  g3 = echarts.init(document.getElementById('historygraph'));
+  g3.setOption(option);
 
-       g3 = echarts.init(document.getElementById('historygraph'));
-       g3.setOption(option);
-
-     });
-
-  });
-
-
-  $("#settings").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-
-    $("#banksForm").hide();
-    $("#rulesForm").hide();
-    $("#settingsPage").show();
-
-    $.getJSON( "settings.json",
-      function(data) {
-
-          $("#NTPServer").val(data.settings.NTPServerName);
-          $("#NTPZoneHour").val(data.settings.TimeZone);
-          $("#NTPZoneMin").val(data.settings.MinutesTimeZone);
-          $("#NTPDST").prop("checked", data.settings.DST);
-
-          var d = new Date(1000*data.settings.now);
-          $("#timenow").html(d.toJSON());
-
-          $("#totalBanks").val(data.settings.totalnumberofbanks);
-
-          if (data.settings.combinationparallel) {
-          $("#combitype").val("Parallel");
-        } else {
-          $("#combitype").val("Serial");
-        }
-          $("#banksForm").show();
-      }).fail(function() {}
-    );
-
-    $.getJSON( "rules.json",
-      function(data) {
-          //Rules have loaded
-
-          //Default relay settings
-          $.each(data.relaydefault, function(index2, value2) {
-            var relay_value="X";
-            if (value2===true) {relay_value="On";}
-            if (value2===false){relay_value="Off";}
-            $("#defaultrelay"+(index2+1)).val(relay_value);
-          });
-
-
-          //Default relay settings
-          $.each(data.relaytype, function(index2, value2) {
-            $("#relaytype"+(index2+1)).val(value2);
-          });
-
-          $("#minutesnow").html(data.timenow);
-
-          if (data.PCF8574) {
-            $("#PCF8574").hide();
-          } else { $("#PCF8574").show();}
-
-          //Loop through each rule updating the page
-          var i=1;
-          var allrules=$(".settings .rule");
-          $.each(data.rules, function(index, value) {
-              $("#rule"+(index+1)+"value").val(value.value);
-
-              //Highlight rules which are active
-              if (value.triggered) {
-                $(allrules[index]).addClass("triggered")
-              } else {
-                $(allrules[index]).removeClass("triggered")
-              }
-
-              $.each(value.relays, function(index2, value2) {
-                var relay_value="X";
-                if (value2===true) {relay_value="On";}
-                if (value2===false){relay_value="Off";}
-
-                $("#rule"+(index+1)+"relay"+(index2+1)).val(relay_value);
-
-              });
-          });
-
-          $("#rulesForm").show();
-      }).fail(function() {}
-    );
-
-    return true;
-  });
-
-  $("#integration").click(function() {
-    $(".header-right a").removeClass("active");
-    $(this).addClass("active");
-    $(".page").hide();
-    $("#integrationPage").show();
-
-    $("#mqttForm").hide();
-    $("#influxForm").hide();
-
-    $.getJSON( "integration.json",
-      function(data) {
-
-          $("#mqttEnabled").prop("checked", data.mqtt.enabled );
-          $("#mqttServer").val(data.mqtt.server);
-          $("#mqttPort").val(data.mqtt.port);
-          $("#mqttUsername").val(data.mqtt.username);
-          $("#mqttPassword").val("");
-
-          $("#influxEnabled").prop("checked", data.influxdb.enabled );
-          $("#influxServer").val(data.influxdb.server);
-          $("#influxPort").val(data.influxdb.port);
-          $("#influxDatabase").val(data.influxdb.database);
-          $("#influxUsername").val(data.influxdb.username);
-          $("#influxPassword").val("");
-
-          $("#mqttForm").show();
-          $("#influxForm").show();
-      }).fail(function() {}
-    );
-
-    return true;
-  });
+});
+//});
+}
 
 
-$("form").unbind('submit').submit(function (e) {
-     e.preventDefault();
+$(function () {
+	//On page ready
+	countdown();
+	//Populate all the setting rules with relay select lists
+	$.each($(".settings .rule"), function (index, value) {
+		$.each([1, 2, 3, 4], function (index1, relay) {
+			$(value).append('<select id="rule' + (index + 1) + 'relay' + relay + '" name="rule' + (index + 1) + 'relay' + relay + '"><option>On</option><option>Off</option><option>X</option></select>');
+		});
+	});
+	$('#CalculateCalibration').click(function () {
+		var currentReading = parseFloat($("#modulesRows > div.selected > span:nth-child(3)").text());
+		var currentCalib = parseFloat($("#Calib").val());
+		var actualV = parseFloat($("#ActualVoltage").val());
+		var result = (currentCalib / currentReading) * actualV;
+		$("#Calib").val(result.toFixed(4));
+		return true;
+	});
 
-     $.ajax({
-         type: $(this).attr('method'),
-         url: $(this).attr('action'),
-         data: $(this).serialize(),
-         success: function (data) {
-             $("#savesuccess").show().delay(2000).fadeOut(500);
-         },
-         error: function (data) {
-             $("#saveerror").show().delay(2000).fadeOut(500);
-         },
-     });
- });
+	$("#home").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		$("#homePage").show();
+		return true;
+	});
+
+	$("#about").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		$("#aboutPage").show();
+		return true;
+	});
+
+	$("#modules").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		//Remove existing table
+		$("#modulesRows").find("div").remove();
+		$("#settingConfig").hide();
+		$("#modulesPage").show();
+		return true;
+	});
+
+	$("#history").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		$("#historyPage").show();
+		//Clear select options
+		$("#hfilelist").find('option').remove().end();
+		$.getJSON("historysummary.json", function (data) {
+			$.each(data.files, function (index2, f) {
+				var date = new Date(f.timeUTC * 1000);
+				$("#hfilelist").append('<option value="' + f.timeUTC + '" data-rowcount="' + f.rowCount + '">' + date.toUTCString() + '</option>');
+			});
+		}).fail(function () {});
+		return true;
+	});
 
 
-  $("#settingsForm").unbind('submit').submit(function (e) {
-       e.preventDefault();
+	$("#hfilelist").change(function () {
+		var maxRows = $("#hfilelist option:selected").data("rowcount");
+		$("#historytimebuttons").empty();
 
-       $.ajax({
-           type: $(this).attr('method'),
-           url: $(this).attr('action'),
-           data: $(this).serialize(),
-           success: function (data) {
-               $('#settingConfig').hide();
-               $("#savesuccess").show().delay(2000).fadeOut(500);
+    var date = new Date(parseInt($("#hfilelist").val(),10) * 1000);
 
-               if ($("#b").val() !== $("#movetobank").val()) {
-                 //Remove existing table as we have moved banks
-                 $("#modulesRows").find("div").remove();
-               }
-           },
-           error: function (data) {
-               $("#saveerror").show().delay(2000).fadeOut(500);
-           },
-       });
-   });
+		for (var i = 0; i < maxRows; i += 120) {
+			$("#historytimebuttons").append('<button data-row="' + i + '" class="historybut" type="button">' + date.getHours()+':'+date.getMinutes() + '</button>');
+      date = new Date(date.getTime() + 120*60000);
+		}
+		$(".historybut").click(selectHistoryTimePeriod);
+	});
 
-    $("#mqttEnabled").change(function() {
-        if($(this).is(":checked")) {
-          $("#mqttForm").removeAttr("novalidate");
-        } else {
-          $("#mqttForm").attr("novalidate","");
-        }
-    });
 
-    $("#influxEnabled").change(function() {
-        if($(this).is(":checked")) {
-          $("#influxForm").removeAttr("novalidate");
-        } else {
-          $("#influxForm").attr("novalidate","");
-        }
-    });
-
-    $.ajaxSetup({
-        beforeSend:function (xhr, settings){settings.data += '&xss='+XSS_KEY;}
-    });
-
-  $("#homePage").show();
+	$("#settings").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		$("#banksForm").hide();
+		$("#rulesForm").hide();
+		$("#settingsPage").show();
+		$.getJSON("settings.json", function (data) {
+			$("#NTPServer").val(data.settings.NTPServerName);
+			$("#NTPZoneHour").val(data.settings.TimeZone);
+			$("#NTPZoneMin").val(data.settings.MinutesTimeZone);
+			$("#NTPDST").prop("checked", data.settings.DST);
+			var d = new Date(1000 * data.settings.now);
+			$("#timenow").html(d.toJSON());
+			$("#totalBanks").val(data.settings.totalnumberofbanks);
+			if (data.settings.combinationparallel) {
+				$("#combitype").val("Parallel");
+			} else {
+				$("#combitype").val("Serial");
+			}
+			$("#banksForm").show();
+		}).fail(function () {});
+		$.getJSON("rules.json", function (data) {
+			//Rules have loaded
+			//Default relay settings
+			$.each(data.relaydefault, function (index2, value2) {
+				var relay_value = "X";
+				if (value2 === true) {
+					relay_value = "On";
+				}
+				if (value2 === false) {
+					relay_value = "Off";
+				}
+				$("#defaultrelay" + (index2 + 1)).val(relay_value);
+			});
+			//Default relay settings
+			$.each(data.relaytype, function (index2, value2) {
+				$("#relaytype" + (index2 + 1)).val(value2);
+			});
+			$("#minutesnow").html(data.timenow);
+			if (data.PCF8574) {
+				$("#PCF8574").hide();
+			} else {
+				$("#PCF8574").show();
+			}
+			//Loop through each rule updating the page
+			var i = 1;
+			var allrules = $(".settings .rule");
+			$.each(data.rules, function (index, value) {
+				$("#rule" + (index + 1) + "value").val(value.value);
+				//Highlight rules which are active
+				if (value.triggered) {
+					$(allrules[index]).addClass("triggered")
+				} else {
+					$(allrules[index]).removeClass("triggered")
+				}
+				$.each(value.relays, function (index2, value2) {
+					var relay_value = "X";
+					if (value2 === true) {
+						relay_value = "On";
+					}
+					if (value2 === false) {
+						relay_value = "Off";
+					}
+					$("#rule" + (index + 1) + "relay" + (index2 + 1)).val(relay_value);
+				});
+			});
+			$("#rulesForm").show();
+		}).fail(function () {});
+		return true;
+	});
+	$("#integration").click(function () {
+		$(".header-right a").removeClass("active");
+		$(this).addClass("active");
+		$(".page").hide();
+		$("#integrationPage").show();
+		$("#mqttForm").hide();
+		$("#influxForm").hide();
+		$.getJSON("integration.json", function (data) {
+			$("#mqttEnabled").prop("checked", data.mqtt.enabled);
+			$("#mqttServer").val(data.mqtt.server);
+			$("#mqttPort").val(data.mqtt.port);
+			$("#mqttUsername").val(data.mqtt.username);
+			$("#mqttPassword").val("");
+			$("#influxEnabled").prop("checked", data.influxdb.enabled);
+			$("#influxServer").val(data.influxdb.server);
+			$("#influxPort").val(data.influxdb.port);
+			$("#influxDatabase").val(data.influxdb.database);
+			$("#influxUsername").val(data.influxdb.username);
+			$("#influxPassword").val("");
+			$("#mqttForm").show();
+			$("#influxForm").show();
+		}).fail(function () {});
+		return true;
+	});
+	$("form").unbind('submit').submit(function (e) {
+		e.preventDefault();
+		$.ajax({
+			type: $(this).attr('method')
+			, url: $(this).attr('action')
+			, data: $(this).serialize()
+			, success: function (data) {
+				$("#savesuccess").show().delay(2000).fadeOut(500);
+			}
+			, error: function (data) {
+				$("#saveerror").show().delay(2000).fadeOut(500);
+			}
+		, });
+	});
+	$("#settingsForm").unbind('submit').submit(function (e) {
+		e.preventDefault();
+		$.ajax({
+			type: $(this).attr('method')
+			, url: $(this).attr('action')
+			, data: $(this).serialize()
+			, success: function (data) {
+				$('#settingConfig').hide();
+				$("#savesuccess").show().delay(2000).fadeOut(500);
+				if ($("#b").val() !== $("#movetobank").val()) {
+					//Remove existing table as we have moved banks
+					$("#modulesRows").find("div").remove();
+				}
+			}
+			, error: function (data) {
+				$("#saveerror").show().delay(2000).fadeOut(500);
+			}
+		, });
+	});
+	$("#mqttEnabled").change(function () {
+		if ($(this).is(":checked")) {
+			$("#mqttForm").removeAttr("novalidate");
+		} else {
+			$("#mqttForm").attr("novalidate", "");
+		}
+	});
+	$("#influxEnabled").change(function () {
+		if ($(this).is(":checked")) {
+			$("#influxForm").removeAttr("novalidate");
+		} else {
+			$("#influxForm").attr("novalidate", "");
+		}
+	});
+	$.ajaxSetup({
+		beforeSend: function (xhr, settings) {
+			settings.data += '&xss=' + XSS_KEY;
+		}
+	});
+	$("#homePage").show();
 });
 </script>
 </body></html>
