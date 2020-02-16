@@ -70,16 +70,18 @@ void DefaultConfig() {
   //2mV per ADC resolution
   myConfig.mVPerADC = 2.0; //2048.0/1024.0;
 
-  //Stop running bypass if temperature over 70 degrees C
-  myConfig.BypassOverTempShutdown = 70;
+  //Stop running bypass if temperature over 50 degrees C
+  //note this is the board temperatrue the resisistors will be much hotter!
+  myConfig.BypassOverTempShutdown = 50;
 
   myConfig.mybank = 0;
 
   //Start bypass at 4.1 volt
   myConfig.BypassThresholdmV = 4100;
 
-  //4150 = B constant (25-50℃)
-  myConfig.Internal_BCoefficient = 4150;
+  //39550 = B constant (25-50℃)
+  //https://datasheet.lcsc.com/szlcsc/Murata-Electronics-NCP18WB473J03RB_C86142.pdf
+  myConfig.Internal_BCoefficient = 3955;
   //4150 = B constant (25-50℃)
   myConfig.External_BCoefficient = 4150;
 
@@ -141,7 +143,8 @@ ISR(USART0_START_vect) {
 //Kd: Determines how aggressively the PID reacts to the change in error (Derivative)
 
 //6Hz rate - number of times we call this code in Loop
-FastPID myPID(175.0, 3.5, 8, 6, 16, false);
+//Kp, Ki, Kd, Hz, output_bits, output_signed);
+FastPID myPID(20, 10, 5, 6, 16, false);
 
 void setup() {
   //Must be first line of code

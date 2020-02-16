@@ -3,7 +3,10 @@
 
 int16_t Steinhart::ThermistorToCelcius(uint16_t BCOEFFICIENT, uint16_t RawADC) {
 //The thermistor is connected in series with another 47k resistor
-//and across the 2.048V reference giving 50:50 weighting
+//and across the 1.25V reference giving 50:50 weighting
+
+//A low voltage reading indicates near freezing temperature, 1023 is over 125 degrees C
+//mid point (0.625V) is 25 degrees C
 
 //We can calculate the  Steinhart-Hart Thermistor Equation based on the B Coefficient of the thermistor
 // at 25 degrees C rating

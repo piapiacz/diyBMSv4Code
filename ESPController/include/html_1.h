@@ -103,7 +103,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
                 <input name="m" id="m" type="hidden" value="0">
                 <div>
                     <label for="BypassOverTempShutdown">Bypass over temperature</label>
-                    <input type="number" min="20" max="90" step="1" name="BypassOverTempShutdown" id="BypassOverTempShutdown" value="70" required="">
+                    <input type="number" min="20" max="90" step="1" name="BypassOverTempShutdown" id="BypassOverTempShutdown" value="50" required="">
                 </div>
                 <div>
                     <label for="BypassThresholdmV">Bypass threshold mV</label>
@@ -148,7 +148,7 @@ const char FILE_INDEX_HTML[] PROGMEM = R"=====(
             <div class="settings">
                 <div>
                     <label for="g1">Bypass over temperature</label>
-                    <input type="number" min="20" max="90" step="1" name="BypassOverTempShutdown" id="g1" value="70" required="">
+                    <input type="number" min="20" max="90" step="1" name="BypassOverTempShutdown" id="g1" value="50" required="">
                 </div>
                 <div>
                     <label for="g2">Bypass threshold mV</label>
@@ -667,8 +667,6 @@ function countdown() {
 
 
 function getHistoricDataRecursive(dateutc, startRow, maxRows) {
-  //console.log(dateutc, startRow, maxRows);
-
   if (startRow>=maxRows) {
     return $.Deferred().resolve().promise();
   }
@@ -804,26 +802,43 @@ $(function() {
       min=(min/1000)-0.5;
     }
 
-    //console.log(values);
-
         var option = {
+    toolbox: {
+        left: 'center',
+        itemSize: 25,
+        top: 55,
+        feature: {
+            dataZoom: {
+                yAxisIndex: 'none'
+            },
+            restore: {}
+        }
+    },
           xAxis: {type:'time' },
-          yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: { show: false },position:'left', axisLabel: { formatter:'{value}V' } },
+          yAxis: {type:'value',min:min,max:max,boundaryGap: [0, '100%'], splitLine: {show:false},position:'left', axisLabel: { formatter:'{value}V' } },
           series: [
-          {name: 'cell0',type:'line',encode:{x: 'timestamp',y: 'cell0'}},
-          {name: 'cell1',type:'line',encode:{x: 'timestamp',y: 'cell1'}},
-          {name: 'cell2',type:'line',encode:{x: 'timestamp',y: 'cell2'}},
-          {name: 'cell3',type:'line',encode:{x: 'timestamp',y: 'cell3'}},
-          {name: 'cell4',type:'line',encode:{x: 'timestamp',y: 'cell4'}},
-          {name: 'cell5',type:'line',encode:{x: 'timestamp',y: 'cell5'}},
-          {name: 'cell6',type:'line',encode:{x: 'timestamp',y: 'cell6'}},
-          {name: 'cell7',type:'line',encode:{x: 'timestamp',y: 'cell7'}},
-          {name: 'cell8',type:'line',encode:{x: 'timestamp',y: 'cell8'}}
+          {name: 'cell0',type:'line',encode:{x:'timestamp',y: 'cell0'}},
+          {name: 'cell1',type:'line',encode:{x:'timestamp',y: 'cell1'}},
+          {name: 'cell2',type:'line',encode:{x:'timestamp',y: 'cell2'}},
+          {name: 'cell3',type:'line',encode:{x:'timestamp',y: 'cell3'}},
+          {name: 'cell4',type:'line',encode:{x:'timestamp',y: 'cell4'}},
+          {name: 'cell5',type:'line',encode:{x:'timestamp',y: 'cell5'}},
+          {name: 'cell6',type:'line',encode:{x:'timestamp',y: 'cell6'}},
+          {name: 'cell7',type:'line',encode:{x:'timestamp',y: 'cell7'}},
+          {name: 'cell8',type:'line',encode:{x:'timestamp',y: 'cell8'}},
+          {name: 'cell9',type:'line',encode:{x:'timestamp',y: 'cell9'}},
+          {name: 'cell10',type:'line',encode:{x:'timestamp',y: 'cell10'}},
+          {name: 'cell11',type:'line',encode:{x:'timestamp',y: 'cell11'}},
+          {name: 'cell12',type:'line',encode:{x:'timestamp',y: 'cell12'}},
+          {name: 'cell13',type:'line',encode:{x:'timestamp',y: 'cell13'}},
+          {name: 'cell14',type:'line',encode:{x:'timestamp',y: 'cell14'}},
+          {name: 'cell15',type:'line',encode:{x:'timestamp',y: 'cell15'}}
           ],
           dataset:{
             source:values,
-            dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8'],
-          }
+            dimensions: ['timestamp', 'cell0', 'cell1', 'cell2', 'cell3', 'cell4', 'cell5', 'cell6', 'cell7', 'cell8', 'cell9', 'cell10', 'cell11', 'cell12', 'cell13', 'cell14', 'cell15'],
+          },
+          dataZoom: [{type: 'inside',throttle: 50}]
        };
 
        g3 = echarts.init(document.getElementById('historygraph'));
