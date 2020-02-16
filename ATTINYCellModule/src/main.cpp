@@ -144,7 +144,7 @@ ISR(USART0_START_vect) {
 
 //6Hz rate - number of times we call this code in Loop
 //Kp, Ki, Kd, Hz, output_bits, output_signed);
-FastPID myPID(20, 10, 5, 6, 16, false);
+FastPID myPID(30, 10, 5, 6, 16, false);
 
 void setup() {
   //Must be first line of code
