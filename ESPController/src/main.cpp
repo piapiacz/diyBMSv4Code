@@ -9,13 +9,9 @@
 
   This is the code for the controller - it talks to the V4 cell modules over isolated serial bus
 
-  This code runs on ESP-8266-12E (NODE MCU 1.0) and compiles with Arduino 1.8.5 environment
+  This code runs on ESP-8266EX WEMOS D1 MINI PRO - 16MB FLASH
 
-  Arduino settings
-  NodeMCU 1.0 (ESP-12E module), Flash 4M (3MSPIFF), CPU 80MHZ
 
-  Setting up ESP-8266-12E (NODE MCU 1.0) on Arduino
-  http://www.instructables.com/id/Programming-a-HTTP-Server-on-ESP-8266-12E/
 
   "c:\Program Files (x86)\PuTTY\putty.exe" -serial COM4 -sercfg 115200,8,n,1,N
 */
