@@ -173,7 +173,7 @@ void setup() {
   hardware.double_tap_blue_led();
 
   //Set up data handler
-  Serial.begin(4800, SERIAL_8N1);
+  Serial.begin(9600, SERIAL_8N1);
 
   myPacketSerial.setStream(&Serial);
   myPacketSerial.setPacketHandler(&onPacketReceived);
