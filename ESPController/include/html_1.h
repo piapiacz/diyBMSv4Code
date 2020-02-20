@@ -762,6 +762,8 @@ function selectHistoryTimePeriod() {
     g3.clear();
   }
 
+  if (maxRows==0) return;
+
   getHistoricDataRecursive($("#hfilelist").val(), startRow, startRow+120).then(function () {
   // something to do when it's all over.
   //DRAW GRAPH
@@ -994,6 +996,7 @@ $(function () {
 		$("#historyPage").show();
 		//Clear select options
 		$("#hfilelist").find('option').remove().end();
+    $("#hfilelist").append('<option value="" data-rowcount="0"></option>');
 		$.getJSON("historysummary.json", function (data) {
 			$.each(data.files, function (index2, f) {
 				var date = new Date(f.timeUTC * 1000);

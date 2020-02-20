@@ -61,8 +61,6 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 
 		//Create our own JSON format so we can stream the data out
 
-		//uint8_t bank = 0;
-
 		SPIFFSLogData<HistoricCellDataBank> data[batchsize];
 		const size_t rowCount = historicData.rowCount(now);
 
@@ -71,6 +69,14 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
     if (end>rowCount) {
       end=rowCount;
     }
+
+    if (start > rowCount)
+		{
+      response->print("}");
+      request->send(response);
+      return;
+    }
+
 
     for (size_t i = 0; i < 3; i++) {
 
@@ -101,25 +107,29 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 
 				response->print("\"data\":[");
 
-        for (int8_t bank = 0; bank < maximum_cell_modules; bank++)
+        int8_t count=0;
+        for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
         {
+          count+=numberOfModules[bank];
+        }
 
-
-				for (uint16_t i = 0; i < maximum_cell_modules; i++)
-				{
-          response->printf("%u", data[row].data.allCells[bank][i].voltagemV);
-					//response->print("{");
-					//response->printf("\"v\":%u,", data[row].data.allCells[i].voltagemV);
-					//response->printf("\"i\":%i,", data[row].data.allCells[i].internalTemp);
-					//response->printf("\"e\":%i,", data[row].data.allCells[i].externalTemp);
-					//response->printf("\"s\":%u", data[row].data.allCells[i].statusBits);
-					//response->print("}");
-					if (i != maximum_cell_modules - 1)
-					{
-						response->print(",");
-					}
-				}	//end for i
-
+        for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
+        {
+  				for (uint16_t i = 0; i < numberOfModules[bank]; i++)
+  				{
+            response->printf("%u", data[row].data.allCells[bank][i].voltagemV);
+  					//response->print("{");
+  					//response->printf("\"v\":%u,", data[row].data.allCells[i].voltagemV);
+  					//response->printf("\"i\":%i,", data[row].data.allCells[i].internalTemp);
+  					//response->printf("\"e\":%i,", data[row].data.allCells[i].externalTemp);
+  					//response->printf("\"s\":%u", data[row].data.allCells[i].statusBits);
+  					//response->print("}");
+  					if (count>1)
+  					{
+  						response->print(",");
+  					}
+            count--;
+  				}	//end for i
         }
 				response->print("]");
 
@@ -133,7 +143,6 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 					response->println(",");
 				}
 			}	//end for row
-
     }
 
 		}
