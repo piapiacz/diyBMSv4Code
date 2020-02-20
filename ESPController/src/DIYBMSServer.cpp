@@ -64,7 +64,7 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 		//uint8_t bank = 0;
 
 		SPIFFSLogData<HistoricCellDataBank> data[batchsize];
-		const size_t rowCount = historicBank0.rowCount(now);
+		const size_t rowCount = historicData.rowCount(now);
 
     size_t end=start+3*batchsize;
 
@@ -81,7 +81,7 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 				batchsize = rowCount - start;
 			}
 
-			size_t rowsFound = historicBank0.readRows(&data[0], now, start, batchsize);
+			size_t rowsFound = historicData.readRows(&data[0], now, start, batchsize);
 
       if (i==0) {
         //Only on first loop
@@ -100,9 +100,14 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 				response->printf("\"timeUTC\":%lu,", data[row].timestampUTC);
 
 				response->print("\"data\":[");
+
+        for (int8_t bank = 0; bank < maximum_cell_modules; bank++)
+        {
+
+
 				for (uint16_t i = 0; i < maximum_cell_modules; i++)
 				{
-          response->printf("%u", data[row].data.allCells[i].voltagemV);
+          response->printf("%u", data[row].data.allCells[bank][i].voltagemV);
 					//response->print("{");
 					//response->printf("\"v\":%u,", data[row].data.allCells[i].voltagemV);
 					//response->printf("\"i\":%i,", data[row].data.allCells[i].internalTemp);
@@ -114,6 +119,8 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 						response->print(",");
 					}
 				}	//end for i
+
+        }
 				response->print("]");
 
         start+=1;
@@ -164,7 +171,7 @@ void DIYBMSServer::historysummary(AsyncWebServerRequest *request) {
         f["file"]=dir.fileName();
 
         File file=dir.openFile("r");
-        f["rowCount"]=historicBank0.rowCount(file);
+        f["rowCount"]=historicData.rowCount(file);
         file.close();
 
         struct tm timeinfo;

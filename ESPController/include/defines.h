@@ -134,15 +134,14 @@ struct CellModuleInfo {
 
 struct HistoricCellData {
   uint16_t voltagemV;
-  int8_t internalTemp;
-  int8_t externalTemp;
-  uint8_t statusBits;
+//  int8_t internalTemp;
+//  int8_t externalTemp;
+//  uint8_t statusBits;
 };
 
 struct HistoricCellDataBank {
-  HistoricCellData allCells[maximum_cell_modules];
+  HistoricCellData allCells[maximum_bank_of_modules][maximum_cell_modules];
 };
-
 
 //This holds all the cell information in a large array 2D array (4x16)
 extern CellModuleInfo cmi[maximum_bank_of_modules][maximum_cell_modules];

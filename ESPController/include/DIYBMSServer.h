@@ -62,10 +62,7 @@ extern uint16_t ConfigHasChanged;
 extern bool rule_outcome[RELAY_RULES];
 extern bool PCF8574Enabled;
 
-extern SPIFFSLogger<HistoricCellDataBank> historicBank0;
-extern SPIFFSLogger<HistoricCellDataBank> historicBank1;
-extern SPIFFSLogger<HistoricCellDataBank> historicBank2;
-extern SPIFFSLogger<HistoricCellDataBank> historicBank3;
+extern SPIFFSLogger<HistoricCellDataBank> historicData;
 
 
 #endif

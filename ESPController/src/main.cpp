@@ -127,42 +127,35 @@ uint16_t sequence=0;
 
 AsyncMqttClient mqttClient;
 
-
-SPIFFSLogger<HistoricCellDataBank> historicBank0("/bank0", HISTORY_DAYS_TO_RETAIN);
-SPIFFSLogger<HistoricCellDataBank> historicBank1("/bank1", HISTORY_DAYS_TO_RETAIN);
-SPIFFSLogger<HistoricCellDataBank> historicBank2("/bank2", HISTORY_DAYS_TO_RETAIN);
-SPIFFSLogger<HistoricCellDataBank> historicBank3("/bank3", HISTORY_DAYS_TO_RETAIN);
+SPIFFSLogger<HistoricCellDataBank> historicData("/history", HISTORY_DAYS_TO_RETAIN);
 
 void timerHistoricLoggerCallback() {
+  HistoricCellDataBank history;
+  memset(&history,0,sizeof(HistoricCellDataBank));
+
   //Loop through cells writing data to the SPIFFs this might be a bit slow!
   for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
   {
     Serial1.print("\r\nWriting historic data, bank:");
     Serial1.print(bank);
     Serial1.print(',');
-    HistoricCellDataBank history;
-
-    memset(&history,0,sizeof(HistoricCellDataBank));
 
     for (int8_t i = 0; i < numberOfModules[bank]; i++) {
-      uint8_t statusBits=0;
+      //uint8_t statusBits=0;
+      //if (cmi[bank][i].inBypass) {statusBits+=1;}
+      //if (cmi[bank][i].bypassOverTemp) {statusBits+=2;}
 
-      if (cmi[bank][i].inBypass) {statusBits+=1;}
-      if (cmi[bank][i].bypassOverTemp) {statusBits+=2;}
-
-      history.allCells[i].voltagemV=cmi[bank][i].voltagemV;
-      history.allCells[i].internalTemp=cmi[bank][i].internalTemp;
-      history.allCells[i].externalTemp=cmi[bank][i].externalTemp;
-      history.allCells[i].statusBits=statusBits;
+      history.allCells[bank][i].voltagemV=cmi[bank][i].voltagemV;
+      //history.allCells[i].internalTemp=cmi[bank][i].internalTemp;
+      //history.allCells[i].externalTemp=cmi[bank][i].externalTemp;
+      //history.allCells[i].statusBits=statusBits;
 
       Serial1.print(i);
       Serial1.print('/');
     }
-    //This isnt very scalable probably need a better SPIFF library to deal with filenames at runtime
-    if(bank==0) { historicBank0.write(history);}
-    if(bank==1) { historicBank1.write(history);}
-    if(bank==2) { historicBank2.write(history);}
-    if(bank==3) { historicBank3.write(history);}
+
+    historicData.write(history);
+
     Serial1.println("..Done");
   }
 }
@@ -813,11 +806,17 @@ void setup() {
       Serial1.println("An Error has occurred while mounting SPIFFS");
   }
 
+/*
+  bool formatted = SPIFFS.format();
+  if (formatted){
+      Serial1.println("Success formatting");
+  }else{
+      Serial1.println("Error formatting");
+  }
+*/
+
   // initialize our logger
-  historicBank0.init();
-  historicBank1.init();
-  historicBank2.init();
-  historicBank3.init();
+  historicData.init();
 
   //SDA / SCL
   //I'm sure this should be 4,5 !
@@ -936,8 +935,5 @@ void loop() {
   }
 
   //TODO: We should only do this if NTP is correct!
-  historicBank0.process();
-  historicBank1.process();
-  historicBank2.process();
-  historicBank3.process();
+  historicData.process();
 }
