@@ -129,6 +129,7 @@ struct CellModuleInfo {
   uint16_t Internal_BCoefficient;
   //External Thermistor settings
   uint16_t External_BCoefficient;
+  uint16_t BoardVersionNumber;
 };
 
 

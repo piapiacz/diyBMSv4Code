@@ -245,9 +245,10 @@ void DIYBMSServer::SendSuccess(AsyncWebServerRequest *request) {
 void DIYBMSServer::resetCounters(AsyncWebServerRequest *request) {
   if (!validateXSS(request)) return;
 
-  receiveProc.totalMissedPacketCount=0;
   receiveProc.totalCRCErrors=0;
   receiveProc.totalNotProcessedErrors=0;
+  prg.packetsGenerated=0;
+  receiveProc.packetsReceived=0;
   SendSuccess(request);
 }
 
@@ -738,6 +739,7 @@ void DIYBMSServer::modules(AsyncWebServerRequest *request) {
 
       settings["bank"] = b;
       settings["module"] = m;
+      settings["ver"] = cmi[b][m].BoardVersionNumber;
 
       settings["Cached"] = cmi[b][m].settingsCached;
       // settings["Requested"] = cmi[b][m].settingsRequested;
@@ -750,6 +752,8 @@ void DIYBMSServer::modules(AsyncWebServerRequest *request) {
       settings["mVPerADC"] = cmi[b][m].mVPerADC;
       settings["IntBCoef"] = cmi[b][m].Internal_BCoefficient;
       settings["ExtBCoef"] = cmi[b][m].External_BCoefficient;
+
+
 
       serializeJson(doc, *response);
       request->send(response);
@@ -781,11 +785,13 @@ void DIYBMSServer::monitor(AsyncWebServerRequest *request) {
   JsonObject monitor = root.createNestedObject("monitor");
 
   // Set error flag if we have attempted to send 2*number of banks without a reply
-  monitor["commserr"] = (receiveProc.abortedComms > 1);
+  monitor["commserr"] = receiveProc.HasCommsTimedOut();
 
-  monitor["badpkt"] = receiveProc.totalMissedPacketCount;
+  monitor["sent"] = prg.packetsGenerated;
+  monitor["received"] = receiveProc.packetsReceived;
   monitor["badcrc"] = receiveProc.totalCRCErrors;
   monitor["ignored"] = receiveProc.totalNotProcessedErrors;
+  monitor["roundtrip"] = receiveProc.packetTimerMillisecond;
 
   JsonArray bankArray = root.createNestedArray("bank");
 

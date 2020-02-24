@@ -159,6 +159,8 @@ void PacketRequestGenerator::sendCellTemperatureRequest(uint8_t b) {
 
 void PacketRequestGenerator::pushPacketToQueue() {
   _requestq->push(&_packetbuffer);
+
+  packetsGenerated++;
 }
 
 void PacketRequestGenerator::setPacketAddress(bool broadcast,uint8_t bank,uint8_t module) {
