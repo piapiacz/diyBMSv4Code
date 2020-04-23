@@ -3,9 +3,15 @@
 #define DIYBMSServer_H_
 
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include <Hash.h>
+#if defined(ESP8266)
+//https://github.com/esp8266/Arduino
+#include <ESP8266WiFi.h>          
 #include <ESPAsyncTCP.h>
+#else
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#endif
+
 #include <ESPAsyncWebServer.h>
 
 #include <EEPROM.h>
@@ -14,10 +20,13 @@
 #include "ArduinoJson.h"
 #include "PacketRequestGenerator.h"
 #include "PacketReceiveProcessor.h"
+
+#if defined(ESP8266)
 #include "ESP8266TrueRandom.h"
 #include <time.h>
 
 #include <SPIFFSLogger.h>
+#endif
 
 class DIYBMSServer {
    public:
@@ -52,6 +61,8 @@ class DIYBMSServer {
       static void saveRuleConfiguration(AsyncWebServerRequest *request);
       static void saveNTP(AsyncWebServerRequest *request);
       static uint16_t minutesSinceMidnight();
+
+      static String uuidToString(uint8_t* uuidLocation);
 };
 
 //TODO: Mixing of classes, static and extern is not great
