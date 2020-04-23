@@ -24,9 +24,9 @@
 #if defined(ESP8266)
 #include "ESP8266TrueRandom.h"
 #include <time.h>
+#include <SPIFFSLogger.h>
 #endif
 
-#include <SPIFFSLogger.h>
 
 class DIYBMSServer {
    public:
@@ -73,7 +73,9 @@ extern uint16_t ConfigHasChanged;
 extern bool rule_outcome[RELAY_RULES];
 extern bool PCF8574Enabled;
 
+#if defined(ESP8266)
 extern SPIFFSLogger<HistoricCellDataBank> historicData;
+#endif
 
 
 #endif

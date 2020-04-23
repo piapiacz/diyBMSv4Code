@@ -44,6 +44,7 @@ See reasons why here https://github.com/me-no-dev/ESPAsyncWebServer/issues/60
 #include <TimeLib.h>
 #include <ESP8266WiFi.h>
 #include <NtpClientLib.h>
+#include <SPIFFSLogger.h>
 #endif
 
 #if defined(ESP32)
@@ -59,7 +60,10 @@ See reasons why here https://github.com/me-no-dev/ESPAsyncWebServer/issues/60
 #include <cppQueue.h>
 #include <pcf8574_esp.h>
 #include <Wire.h>
+
+#if defined(ESP8266)
 #include <SPIFFSLogger.h>
+#endif
 
 #include "defines.h"
 
@@ -139,12 +143,15 @@ uint16_t sequence = 0;
 
 AsyncMqttClient mqttClient;
 
+#if defined(ESP8266)
 SPIFFSLogger<HistoricCellDataBank> historicData("/history", HISTORY_DAYS_TO_RETAIN);
+#endif
 
 void timerHistoricLoggerCallback() {
   HistoricCellDataBank history;
   memset(&history,0,sizeof(HistoricCellDataBank));
 
+#if defined(ESP8266)
   //Loop through cells writing data to the SPIFFs this might be a bit slow!
   for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
   {
@@ -162,6 +169,7 @@ void timerHistoricLoggerCallback() {
 
     SERIAL_DEBUG.println("..Done");
   }
+#endif  
 }
 
 void dumpPacketToDebug(packet *buffer)
@@ -996,8 +1004,11 @@ void setup()
   //Debug serial output
   SERIAL_DEBUG.begin(115200, SERIAL_8N1);
   SERIAL_DEBUG.setDebugOutput(true);
+
+#if defined(ESP8266)
   // initialize our logger
   historicData.init();
+#endif
 
   // initialize SPIFFS
   if (!SPIFFS.begin())

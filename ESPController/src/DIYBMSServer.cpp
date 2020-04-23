@@ -50,6 +50,8 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 
 	AsyncResponseStream *response = request->beginResponseStream("application/json");
 
+#if defined(ESP8266)
+
 	if (request->hasParam("dateutc", false) && request->hasParam("start", false))
 	{
 		AsyncWebParameter *p1 = request->getParam("dateutc", false);
@@ -156,12 +158,17 @@ void DIYBMSServer::history(AsyncWebServerRequest *request)
 	{
 		response->print("[]");
 	}
+#else
+		response->print("Not supported");
+#endif
+
 	request->send(response);
 }
 
 void DIYBMSServer::historysummary(AsyncWebServerRequest *request) {
   AsyncResponseStream *response = request->beginResponseStream("application/json");
 
+#if defined(ESP8266)
   DynamicJsonDocument doc(2048);
   JsonObject rootJson = doc.to<JsonObject>();
 
@@ -204,6 +211,11 @@ void DIYBMSServer::historysummary(AsyncWebServerRequest *request) {
   }
 
   serializeJson(doc, *response);
+
+#else
+		response->print("Not supported");
+#endif
+
   request->send(response);
 }
 
