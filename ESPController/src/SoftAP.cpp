@@ -73,9 +73,8 @@ void DIYBMSSoftAP::SetupAccessPoint(AsyncWebServer  *webserver) {
     for (int i = 0; i < n; ++i)
     {
         DIYBMSSoftAP::networks += "<option>"+WiFi.SSID(i)+"</option>";
-        Serial1.println(WiFi.SSID(i));
-      }
-      delay(10);
+        SERIAL_DEBUG.println(WiFi.SSID(i));
+        delay(5);
     }
   }
 

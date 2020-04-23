@@ -148,37 +148,30 @@ void timerHistoricLoggerCallback() {
   //Loop through cells writing data to the SPIFFs this might be a bit slow!
   for (int8_t bank = 0; bank < mysettings.totalNumberOfBanks; bank++)
   {
-    Serial1.print("\r\nWriting historic data, bank:");
-    Serial1.print(bank);
-    Serial1.print(',');
+    SERIAL_DEBUG.print("\r\nWriting historic data, bank:");
+    SERIAL_DEBUG.print(bank);
+    SERIAL_DEBUG.print(',');
 
     for (int8_t i = 0; i < numberOfModules[bank]; i++) {
-      //uint8_t statusBits=0;
-      //if (cmi[bank][i].inBypass) {statusBits+=1;}
-      //if (cmi[bank][i].bypassOverTemp) {statusBits+=2;}
-
       history.allCells[bank][i].voltagemV=cmi[bank][i].voltagemV;
-      //history.allCells[i].internalTemp=cmi[bank][i].internalTemp;
-      //history.allCells[i].externalTemp=cmi[bank][i].externalTemp;
-      //history.allCells[i].statusBits=statusBits;
-
-      Serial1.print(i);
-      Serial1.print('/');
+      SERIAL_DEBUG.print(i);
+      SERIAL_DEBUG.print('/');
     }
 
     historicData.write(history);
 
-    Serial1.println("..Done");
+    SERIAL_DEBUG.println("..Done");
   }
 }
 
-void dumpPacketToDebug(packet *buffer) {
-  Serial1.print(buffer->address,HEX);
-  Serial1.print('/');
-  Serial1.print(buffer->command,HEX);
-  Serial1.print('/');
-  Serial1.print(buffer->sequence,HEX);
-  Serial1.print('=');
+void dumpPacketToDebug(packet *buffer)
+{
+  SERIAL_DEBUG.print(buffer->address, HEX);
+  SERIAL_DEBUG.print('/');
+  SERIAL_DEBUG.print(buffer->command, HEX);
+  SERIAL_DEBUG.print('/');
+  SERIAL_DEBUG.print(buffer->sequence, HEX);
+  SERIAL_DEBUG.print('=');
   for (size_t i = 0; i < maximum_cell_modules; i++)
   {
     SERIAL_DEBUG.print(buffer->moduledata[i], HEX);
@@ -261,9 +254,8 @@ void onPacketReceived(const uint8_t *receivebuffer, size_t len)
   }
 }
 
-
-
-void timerTransmitCallback() {
+void timerTransmitCallback()
+{
   // Called to transmit the next packet in the queue need to ensure this procedure is called more frequently than
   // items are added into the queue
   if (!requestQueue.isEmpty())
@@ -580,7 +572,6 @@ void setupInfluxClient()
     return;
 
   aClient = new AsyncClient();
-  
   if (!aClient) //could not allocate client
     return;
 
@@ -939,9 +930,8 @@ void timerLazyCallback()
   }
 }
 
-
-
-void setup() {
+void setup()
+{
   WiFi.mode(WIFI_OFF);
 
 #if defined(ESP32)
@@ -1004,47 +994,10 @@ void setup() {
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
   //Debug serial output
-  Serial1.begin(115200, SERIAL_8N1);
-  Serial1.setDebugOutput(true);
-
-  //LoadConfiguration();
-
-  // initialize SPIFFS
-  if (!SPIFFS.begin()) {
-      Serial1.println("An Error has occurred while mounting SPIFFS");
-  }
-
-/*
-  bool formatted = SPIFFS.format();
-  if (formatted){
-      Serial1.println("Success formatting");
-  }else{
-      Serial1.println("Error formatting");
-  }
-*/
-
-  // initialize our logger
-  historicData.init();
-
-  //SDA / SCL
-  //I'm sure this should be 4,5 !
-  Wire.begin(5,4);
-  Wire.setClock(100000L);
-
-  //Make PINs 4-7 INPUTs - the interrupt fires when triggered
-  pcf8574.begin();
-
-  //We test to see if the i2c expander is actually fitted
-  pcf8574.read8();
-
-  if (pcf8574.lastError()==0) {
-    Serial1.println("Found pcf8574");
-    pcf8574.write(4, HIGH);
-    pcf8574.write(5, HIGH);
-    pcf8574.write(6, HIGH);
-    pcf8574.write(7, HIGH);
   SERIAL_DEBUG.begin(115200, SERIAL_8N1);
   SERIAL_DEBUG.setDebugOutput(true);
+  // initialize our logger
+  historicData.init();
 
   // initialize SPIFFS
   if (!SPIFFS.begin())
@@ -1052,8 +1005,6 @@ void setup() {
     SERIAL_DEBUG.println("An Error has occurred while mounting SPIFFS");
   }
 
-  //internal pullup-resistor on the interrupt line via ESP8266
-  pcf8574.resetInterruptPin();
   LoadConfiguration();
 
   ConfigureI2C();
@@ -1075,9 +1026,6 @@ void setup() {
   else
   {
 
-    attachInterrupt(digitalPinToInterrupt(D5), PCFInterrupt, FALLING);
-
-    myHistoricLoggerTimer.attach(60, timerHistoricLoggerCallback);
 
 #if defined(ESP8266)
     //Config NTP
@@ -1125,7 +1073,10 @@ void setup() {
   myTransmitTimer.attach(0.5, timerTransmitCallback);
 
   //This is my 10 second lazy timer
-  myLazyTimer.attach(10, timerLazyCallback);
+  myLazyTimer.attach(10, timerLazyCallback); 
+
+  myHistoricLoggerTimer.attach(60, timerHistoricLoggerCallback);
+
 }
 
 void loop()
@@ -1165,4 +1116,6 @@ void loop()
     NTPsyncEventTriggered = false;
   }
 #endif
+
 }
+

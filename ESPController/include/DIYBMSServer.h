@@ -24,9 +24,9 @@
 #if defined(ESP8266)
 #include "ESP8266TrueRandom.h"
 #include <time.h>
+#endif
 
 #include <SPIFFSLogger.h>
-#endif
 
 class DIYBMSServer {
    public:

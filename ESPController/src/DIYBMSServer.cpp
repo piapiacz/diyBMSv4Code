@@ -205,6 +205,9 @@ void DIYBMSServer::historysummary(AsyncWebServerRequest *request) {
 
   serializeJson(doc, *response);
   request->send(response);
+}
+
+
 String DIYBMSServer::uuidToString(uint8_t* uuidLocation) {
   String string = "";
   int i;

@@ -209,11 +209,13 @@ following foramt:
 |  7  | 4100    | bypass threshold millivolts               |
 |  8  | 4150    | internal thermistor B coefficient         |
 |  9  | 4150    | external thermistor B coefficient         |
-| 10  | 4       | Hardware version of the module (4/4.1/4.2 are reported as 4  |
+| 10  | 400     | Hardware version of the module (400/410/420/421/430) |
 
 ### Write Settings (6)
 
 This command is used to program new settings to the device. It uses the same
 format in the data fields as the "Read Settings" command, above. The new
 settings will be stored in device non-volatile memory.
+
+### Report balance level (7)
 

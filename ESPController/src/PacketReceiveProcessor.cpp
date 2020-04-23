@@ -122,17 +122,10 @@ void PacketReceiveProcessor::ProcessReplyTemperature() {
   // Called when a decoded packet has arrived in buffer for command 3
 
   ProcessReplyAddressByte();
-
-  //Serial1.println("Temp:");
-
   // 40 offset for below zero temps
   for (size_t i = 0; i < maximum_cell_modules; i++) {
     cmi[ReplyFromBank()][i].internalTemp = ((_packetbuffer.moduledata[i] & 0xFF00) >> 8) - 40;
     cmi[ReplyFromBank()][i].externalTemp = (_packetbuffer.moduledata[i] & 0x00FF) - 40;
-
-    //Serial1.print(cmi[ReplyFromBank()][i].internalTemp);
-    //Serial1.print(cmi[ReplyFromBank()][i].externalTemp);
-    //Serial1.print(",");
   }
 }
 
