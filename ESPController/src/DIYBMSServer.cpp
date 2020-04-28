@@ -507,7 +507,7 @@ void DIYBMSServer::saveGlobalSetting(AsyncWebServerRequest *request) {
     AsyncWebParameter *p2 = request->getParam("BypassThresholdmV", true);
     uint16_t BypassThresholdmV=p2->value().toInt();
 
-    prg.sendSaveGlobalSetting(BypassThresholdmV,BypassOverTempShutdown,mysettings.totalNumberOfBanks);
+    prg.sendSaveGlobalSetting(mysettings.totalNumberOfBanks, BypassThresholdmV, BypassOverTempShutdown);
 
     //Just returns NULL
     SendSuccess(request);
