@@ -66,9 +66,6 @@ uint16_t bypassCountDown = 0;
 uint8_t bypassHasJustFinished = 0;
 bool pwmrunning = false;
 
-void DefaultConfig()
-{
-
 
 bool packetValidForMe = false;
 bool packetRecieved = false;
@@ -250,6 +247,7 @@ void loop()
     //Flash green LED twice after a watchdog wake up
     hardware.double_tap_green_led();
 #endif
+
     //We got here because the watchdog (after 8 seconds) went off - we didnt receive a packet of data
     wdt_triggered = false;    
   } else {
