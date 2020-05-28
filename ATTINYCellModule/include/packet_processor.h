@@ -39,7 +39,6 @@ public:
     _config = config;
   }
   ~PacketProcessor() {}
-  bool onPacketReceived(const uint8_t* receivebuffer, size_t len);
   bool isValidPacketForMe(const uint8_t* receivebuffer, size_t len);
   bool preparePacketToSend();  
   byte* GetBufferPointer();

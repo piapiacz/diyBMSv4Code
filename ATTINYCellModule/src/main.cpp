@@ -68,7 +68,7 @@ bool pwmrunning = false;
 
 
 bool packetValidForMe = false;
-bool packetRecieved = false;
+bool packetReceived = false;
 #define WAIT_PACKET 200  //miliseconds after sleep to wait packetSerial.update();
 uint32_t waitUpdateStart;
 
@@ -136,10 +136,9 @@ ISR(ADC_vect)
 
 void onPacketReceived(const uint8_t* receivebuffer, size_t len) {
   if (len > 0) {
-    packetRecieved = true;
+    packetReceived = true;
     //A data packet has just arrived, check it. Save if it is valid to switch on green led.
     packetValidForMe = PP.isValidPacketForMe(receivebuffer, len);
-
   }
 }
 
@@ -252,9 +251,9 @@ void loop()
     wdt_triggered = false;    
   } else {
     //We have wake up because of UART
-    //Loop to process packet until WAIT_PACKET time or packetRecieved. I will recieve ONLY one packet as Wemos sends them at 0.5 seconds rate  
+    //Loop to process packet until WAIT_PACKET time or packetReceived. I will recieve ONLY one packet as Wemos sends them at 0.5 seconds rate  
     waitUpdateStart = millis();
-    while ((millis() - waitUpdateStart < WAIT_PACKET) && !packetRecieved) {
+    while ((millis() - waitUpdateStart < WAIT_PACKET) && !packetReceived) {
         myPacketSerial.update();
     }
   }
@@ -346,7 +345,7 @@ void loop()
   }
 
 
-  if (packetRecieved) {
+  if (packetReceived) {
     if (packetValidForMe) {
       //Before send the packet, we have to process it first.
       if (PP.preparePacketToSend()) {
@@ -377,7 +376,7 @@ void loop()
     //At 2400bits per second, = 300 bytes per second = 1000ms/300bytes/sec= 3ms per byte
 
     hardware.DisableSerial0TX();
-    packetRecieved = false;
+    packetReceived = false;
   }
 
 
