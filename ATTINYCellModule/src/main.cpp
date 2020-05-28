@@ -252,8 +252,8 @@ void loop()
   } else {
     //We have wake up because of UART
     //Loop to process packet until WAIT_PACKET time or packetReceived. I will recieve ONLY one packet as Wemos sends them at 0.5 seconds rate  
-    waitUpdateStart = millis();
-    while ((millis() - waitUpdateStart < WAIT_PACKET) && !packetReceived) {
+    waitUpdateStart = millis()+WAIT_PACKET;
+    while ((millis() < waitUpdateStart) && !packetReceived) {
         myPacketSerial.update();
     }
   }
@@ -350,7 +350,7 @@ void loop()
       //Before send the packet, we have to process it first.
       if (PP.preparePacketToSend()) {
         //Only light green if packet is good
-        hardware.GreenLedOn();          
+        hardware.GreenLedOn();
       }
       packetValidForMe = false;
     }   
@@ -361,8 +361,7 @@ void loop()
     Serial.write(framingmarker);
     //Let connected module wake up
     hardware.FlushSerial0();
-    delay(3); //As we do in wemos code.
-
+    //delay(10); //As we do in wemos code.
 
     //Send the packet (even if it was invalid so controller can count crc errors)
     myPacketSerial.send(PP.GetBufferPointer(), PP.GetBufferSize());
@@ -379,11 +378,9 @@ void loop()
     packetReceived = false;
   }
 
-
   hardware.GreenLedOff();
 
   if (bypassHasJustFinished > 0) {
-
     bypassHasJustFinished--;
   }
 }
