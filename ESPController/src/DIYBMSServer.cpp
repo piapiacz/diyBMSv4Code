@@ -187,9 +187,11 @@ void DIYBMSServer::saveRuleConfiguration(AsyncWebServerRequest *request) {
     if (request->hasParam(name.c_str(), true, false)) {
       AsyncWebParameter *p1 = request->getParam(name.c_str(), true, false);
       //Default
-      mysettings.rulerelaydefault[i] =RELAY_OFF;
+      mysettings.rulerelaydefault[i] =RELAY_X;
       if (p1->value().equals("On")) {
         mysettings.rulerelaydefault[i] = RELAY_ON;
+      }else if (p1->value().equals("Off")) {
+        mysettings.rulerelaydefault[i] = RELAY_OFF;
       }
     }
   }
@@ -476,7 +478,8 @@ void DIYBMSServer::rules(AsyncWebServerRequest *request) {
   AsyncResponseStream *response =
       request->beginResponseStream("application/json");
 
-  DynamicJsonDocument doc(2048);
+  //last 2 rules could not fit
+  DynamicJsonDocument doc(3072);
   JsonObject root = doc.to<JsonObject>();
 
 
@@ -500,6 +503,7 @@ void DIYBMSServer::rules(AsyncWebServerRequest *request) {
     switch(mysettings.rulerelaydefault[relay]) {
       case RELAY_OFF: defaultArray.add(false);break;
       case RELAY_ON: defaultArray.add(true);break;
+      case RELAY_X: defaultArray.add("X");break;
       default: defaultArray.add((char*)0);break;
     }
   }
@@ -513,7 +517,6 @@ void DIYBMSServer::rules(AsyncWebServerRequest *request) {
     }
   }
 
-
   JsonArray bankArray = root.createNestedArray("rules");
 
   for (uint8_t r = 0; r < RELAY_RULES; r++) {
@@ -526,6 +529,7 @@ void DIYBMSServer::rules(AsyncWebServerRequest *request) {
       switch(mysettings.rulerelaystate[r][relay]) {
         case RELAY_OFF: data.add(false);break;
         case RELAY_ON: data.add(true);break;
+        case RELAY_X: data.add("X");break;
         default: data.add((char*)0);break;
       }
     }
@@ -694,6 +698,13 @@ void DIYBMSServer::monitor(AsyncWebServerRequest *request) {
       cell["badpkt"] = cmi[bank][i].badPacketCount;
       cell["pwm"] = cmi[bank][i].inBypass? cmi[bank][i].PWMValue:0;
     }
+  }
+
+  root["relays"] = RELAY_TOTAL;
+  JsonArray relayArray = root.createNestedArray("relay");
+  for (uint8_t i=0;i<RELAY_TOTAL;i++) {
+    JsonObject relay = relayArray.createNestedObject();
+    relay["state"] = previousRelayState[i]==HIGH?"off":"on";
   }
   serializeJson(doc, *response);
   request->send(response);

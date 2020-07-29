@@ -35,14 +35,20 @@
 #define RULE_EmergencyStop 0
 #define RULE_CommunicationsError 1
 #define RULE_Individualcellovervoltage 2
-#define RULE_Individualcellundervoltage 3
-#define RULE_IndividualcellovertemperatureExternal 4
-#define RULE_IndividualcellundertemperatureExternal 5
-#define RULE_PackOverVoltage 6
-#define RULE_PackUnderVoltage 7
+#define RULE_Individualcellovervoltagerecovery 3
+#define RULE_Individualcellovervoltageload 4
+#define RULE_Individualcellovervoltageloadrecovery 5
+#define RULE_Individualcellundervoltage 6
+#define RULE_Individualcellundervoltagerecovery 7
+#define RULE_Individualcellundervoltageload 8
+#define RULE_Individualcellundervoltageloadrecovery 9
+#define RULE_IndividualcellovertemperatureExternal 10
+#define RULE_IndividualcellundertemperatureExternal 11
+#define RULE_PackOverVoltage 12
+#define RULE_PackUnderVoltage 13
 
-#define RULE_Timer1 8
-#define RULE_Timer2 9
+#define RULE_Timer1 14
+#define RULE_Timer2 15
 
 #define GREEN_LED_ON digitalWrite(GREEN_LED, HIGH)
 #define GREEN_LED_OFF digitalWrite(GREEN_LED, LOW)
@@ -53,7 +59,7 @@
 #define RELAY_OFF 0x99
 #define RELAY_X 0x00
 
-#define RELAY_RULES 10
+#define RELAY_RULES 16
 //Number of relays on board (4)
 #define RELAY_TOTAL 4
 
@@ -173,5 +179,7 @@ struct CellModuleInfo
 //This holds all the cell information in a large array 2D array (4x16)
 extern CellModuleInfo cmi[maximum_bank_of_modules][maximum_cell_modules];
 extern uint8_t numberOfModules[maximum_bank_of_modules];
+
+extern uint8_t previousRelayState[RELAY_TOTAL];
 
 #endif

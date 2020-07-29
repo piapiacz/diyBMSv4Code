@@ -48,6 +48,7 @@
         <div id="sent" class="stat"><span class="x t">Packets sent:</span><span class="x v"></span></div>
         <div id="received" class="stat"><span class="x t">Packets rec'd:</span><span class="x v"></span></div>
         <div id="roundtrip" class="stat"><span class="x t">Roundtrip (ms):</span><span class="x v"></span></div>
+        <div id="relays" class="stat"><span class="x t">Relays:</span><span class="x v"></span></div> 
     </div>
 
 
@@ -308,48 +309,84 @@
                             <div class="rule">
                                 <label for="rule3value">Individual cell over voltage (mV)</label>
                                 <input type="number" min="2500" max="4500" step="10" name="rule3value" id="rule3value"
+                                    value="4150" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule4value">Individual cell over voltage recovery (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule4value" id="rule4value"
+                                    value="4050" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule5value">Individual cell over voltage load (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule5value" id="rule5value"
                                     value="4100" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule4value">Individual cell under voltage (mV)</label>
-                                <input type="number" min="2500" max="4500" step="10" name="rule4value" id="rule4value"
+                                <label for="rule6value">Individual cell over voltage load recovery (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule6value" id="rule6value"
+                                    value="4000" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule7value">Individual cell under voltage (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule7value" id="rule7value"
                                     value="3000" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule5value">Individual cell over temperature (external) °C</label>
-                                <input type="number" min="10" max="90" step="1" name="rule5value" id="rule5value"
+                                <label for="rule8value">Individual cell under voltage recovery (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule8value" id="rule8value"
+                                    value="3200" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule9value">Individual cell under voltage load (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule9value" id="rule9value"
+                                    value="3200" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule10value">Individual cell under voltage load recovery (mV)</label>
+                                <input type="number" min="2500" max="4500" step="10" name="rule10value" id="rule10value"
+                                    value="3400" required="">
+                            </div>
+
+                            <div class="rule">
+                                <label for="rule11value">Individual cell over temperature (external) °C</label>
+                                <input type="number" min="10" max="90" step="1" name="rule11value" id="rule11value"
                                     value="45" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule6value">Individual cell under temperature (external) °C</label>
-                                <input type="number" min="-39" max="90" step="1" name="rule6value" id="rule6value"
+                                <label for="rule12value">Individual cell under temperature (external) °C</label>
+                                <input type="number" min="-39" max="90" step="1" name="rule12value" id="rule12value"
                                     value="5" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule7value">Pack over voltage (mV)</label>
-                                <input type="number" min="1000" max="99999999" step="100" name="rule7value"
-                                    id="rule7value" value="16000" required="">
+                                <label for="rule13value">Pack over voltage (mV)</label>
+                                <input type="number" min="1000" max="99999999" step="100" name="rule13value"
+                                    id="rule13value" value="16000" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule8value">Pack under voltage (mV)</label>
-                                <input type="number" min="1000" max="99999999" step="100" name="rule8value"
-                                    id="rule8value" value="12000" required="">
+                                <label for="rule14value">Pack under voltage (mV)</label>
+                                <input type="number" min="1000" max="99999999" step="100" name="rule14value"
+                                    id="rule14value" value="12000" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule9value">Minutes after 2</label>
-                                <input type="number" min="0" max="1440" step="1" name="rule9value" id="rule9value"
+                                <label for="rule15value">Minutes after 2</label>
+                                <input type="number" min="0" max="1440" step="1" name="rule15value" id="rule15value"
                                     value="0" required="">
                             </div>
 
                             <div class="rule">
-                                <label for="rule10value">Minutes after 1</label>
-                                <input type="number" min="0" max="1440" step="1" name="rule10value" id="rule10value"
+                                <label for="rule16value">Minutes after 1</label>
+                                <input type="number" min="0" max="1440" step="1" name="rule16value" id="rule16value"
                                     value="0" required="">
                             </div>
 
@@ -358,18 +395,22 @@
                                 <input type="number" min="0" max="999999" step="1" name="defaultvalue" id="defaultvalue"
                                     value="0" required="" readonly="">
                                 <select id="defaultrelay1" name="defaultrelay1">
+                                    <option>X</option>
                                     <option>On</option>
                                     <option>Off</option>
                                 </select>
                                 <select id="defaultrelay2" name="defaultrelay2">
+                                    <option>X</option>
                                     <option>On</option>
                                     <option>Off</option>
                                 </select>
                                 <select id="defaultrelay3" name="defaultrelay3">
+                                    <option>X</option>
                                     <option>On</option>
                                     <option>Off</option>
                                 </select>
                                 <select id="defaultrelay4" name="defaultrelay4">
+                                    <option>X</option>
                                     <option>On</option>
                                     <option>Off</option>
                                 </select>

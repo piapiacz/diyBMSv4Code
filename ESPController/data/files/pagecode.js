@@ -120,6 +120,15 @@ function queryBMS() {
     if (jsondata.monitor.received == 0) { $("#received").hide(); } else { $("#received .v").html(jsondata.monitor.received); $("#received").show(); }
     if (jsondata.monitor.roundtrip == 0) { $("#roundtrip").hide(); } else { $("#roundtrip .v").html(jsondata.monitor.roundtrip); $("#roundtrip").show(); }
 
+    var relays="n/a";
+    for (var i=0;i<jsondata.relays;i++) {
+        if (i==0)
+          relays = jsondata.relay[i].state;
+        else
+          relays += ", "+jsondata.relay[i].state;
+    }
+    $("#relays .v").html(relays);
+
     for (var bankNumber = 0; bankNumber < 4; bankNumber++) {
       if (voltage[bankNumber] > 0) {
         $("#voltage" + (bankNumber + 1) + " .v").html(voltage[bankNumber].toFixed(2) + "V");

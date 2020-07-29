@@ -83,7 +83,7 @@ NTPSyncEvent_t ntpEvent;            // Last triggered event
 AsyncWebServer server(80);
 
 //PCF8574P has an i2c address of 0x38 instead of the normal 0x20
-PCF857x pcf8574(0x38, &Wire);
+PCF857x pcf8574(0x20, &Wire);
 
 void ICACHE_RAM_ATTR PCFInterrupt()
 {
@@ -311,10 +311,46 @@ void ProcessRules()
         rule_outcome[RULE_Individualcellovervoltage] = true;
       }
 
+      if (cmi[bank][i].voltagemV < mysettings.rulevalue[RULE_Individualcellovervoltagerecovery])
+      {
+        //Rule Individual cell over voltage
+        rule_outcome[RULE_Individualcellovervoltagerecovery] = true;
+      }
+
+      if (cmi[bank][i].voltagemV > mysettings.rulevalue[RULE_Individualcellovervoltageload])
+      {
+        //Rule Individual cell over voltage
+        rule_outcome[RULE_Individualcellovervoltageload] = true;
+      }
+
+      if (cmi[bank][i].voltagemV < mysettings.rulevalue[RULE_Individualcellovervoltageloadrecovery])
+      {
+        //Rule Individual cell over voltage
+        rule_outcome[RULE_Individualcellovervoltageloadrecovery] = true;
+      }
+
       if (cmi[bank][i].voltagemV < mysettings.rulevalue[RULE_Individualcellundervoltage])
       {
         //Rule Individual cell under voltage (mV)
         rule_outcome[RULE_Individualcellundervoltage] = true;
+      }
+
+      if (cmi[bank][i].voltagemV > mysettings.rulevalue[RULE_Individualcellundervoltagerecovery])
+      {
+        //Rule Individual cell under voltage (mV)
+        rule_outcome[RULE_Individualcellundervoltagerecovery] = true;
+      }
+
+      if (cmi[bank][i].voltagemV < mysettings.rulevalue[RULE_Individualcellundervoltageload])
+      {
+        //Rule Individual cell under voltage (mV)
+        rule_outcome[RULE_Individualcellundervoltageload] = true;
+      }
+
+      if (cmi[bank][i].voltagemV > mysettings.rulevalue[RULE_Individualcellundervoltageloadrecovery])
+      {
+        //Rule Individual cell under voltage (mV)
+        rule_outcome[RULE_Individualcellundervoltageloadrecovery] = true;
       }
 
       if ((cmi[bank][i].externalTemp != -40) && (cmi[bank][i].externalTemp > mysettings.rulevalue[RULE_IndividualcellovertemperatureExternal]))
@@ -422,7 +458,10 @@ void timerProcessRules()
   //Set defaults based on configuration
   for (int8_t y = 0; y < RELAY_TOTAL; y++)
   {
-    relay[y] = mysettings.rulerelaydefault[y] == RELAY_ON ? LOW : HIGH;
+    if (mysettings.rulerelaydefault[y] == RELAY_X)
+      relay[y] = previousRelayState[y];
+    else
+      relay[y] = mysettings.rulerelaydefault[y] == RELAY_ON ? LOW : HIGH;
   }
 
   //Test the rules (in reverse order)
@@ -594,8 +633,14 @@ void setupInfluxClient()
       {
 
         //Data in LINE PROTOCOL format https://docs.influxdata.com/influxdb/v1.7/write_protocols/line_protocol_tutorial/
-        poststring = poststring + "cells," + "cell=" + String(bank + 1) + "_" + String(i + 1) + " v=" + String((float)cmi[bank][i].voltagemV / 1000.0, 3) + ",i=" + String(cmi[bank][i].internalTemp) + "i" + ",e=" + String(cmi[bank][i].externalTemp) + "i" + ",b=" + (cmi[bank][i].inBypass ? String("true") : String("false")) + "\n";
+//Grafana does not show boolean from influxdb ...
+//        poststring = poststring + "cells," + "cell=" + String(bank + 1) + "_" + String(i + 1) + " v=" + String((float)cmi[bank][i].voltagemV / 1000.0, 3) + ",i=" + String(cmi[bank][i].internalTemp) + "i" + ",e=" + String(cmi[bank][i].externalTemp) + "i" + ",b=" + (cmi[bank][i].inBypass ? String("true") : String("false")) + "\n";
+        poststring = poststring + "cells," + "cell=" + String(bank + 1) + "_" + String(i + 1) + " v=" + String((float)cmi[bank][i].voltagemV / 1000.0, 3) + ",i=" + String(cmi[bank][i].internalTemp) + "i" + ",e=" + String(cmi[bank][i].externalTemp) + "i" + ",b=" + (cmi[bank][i].inBypass ? "1" : "0") + "\n";
       }
+    }
+
+    for (uint8_t i=0;i<RELAY_TOTAL;i++) {
+      poststring += "relays, relay="+String(i+1)+" s="+(previousRelayState[i]==HIGH ? "0":"1")+"\n";
     }
 
     //TODO: Need to URLEncode these values
@@ -779,8 +824,11 @@ void LoadConfiguration()
   strcpy(mysettings.mqtt_username, "emonpi");
   strcpy(mysettings.mqtt_password, "emonpimqtt2016");
 
-  strcpy(mysettings.influxdb_host, "myinfluxserver");
-  strcpy(mysettings.influxdb_database, "database");
+  mysettings.influxdb_enabled = false;
+  mysettings.influxdb_httpPort=8086;
+
+  strcpy(mysettings.influxdb_host, "10.0.0.10");
+  strcpy(mysettings.influxdb_database, "automation");
   strcpy(mysettings.influxdb_user, "user");
   strcpy(mysettings.influxdb_password, "");
 
@@ -791,7 +839,7 @@ void LoadConfiguration()
 
   for (size_t x = 0; x < RELAY_TOTAL; x++)
   {
-    mysettings.rulerelaydefault[x] = RELAY_OFF;
+    mysettings.rulerelaydefault[x] = RELAY_X;
   }
 
   //1. Emergency stop
@@ -800,15 +848,27 @@ void LoadConfiguration()
   mysettings.rulevalue[RULE_CommunicationsError] = 0;
   //3. Individual cell over voltage
   mysettings.rulevalue[RULE_Individualcellovervoltage] = 4150;
-  //4. Individual cell under voltage
+  //4. Individual cell over voltage recovery
+  mysettings.rulevalue[RULE_Individualcellovervoltagerecovery] = 4050;
+  //5. Individual cell over voltage load
+  mysettings.rulevalue[RULE_Individualcellovervoltageload] = 4100;
+  //6. Individual cell over voltage load recovery
+  mysettings.rulevalue[RULE_Individualcellovervoltageloadrecovery] = 4000;
+  //7. Individual cell under voltage
   mysettings.rulevalue[RULE_Individualcellundervoltage] = 3000;
-  //5. Individual cell over temperature (external probe)
+  //8. Individual cell under voltage recovery
+  mysettings.rulevalue[RULE_Individualcellundervoltagerecovery] = 3200;
+  //9. Individual cell under voltage load
+  mysettings.rulevalue[RULE_Individualcellundervoltageload] = 3200;
+  //10. Individual cell under voltage load recovery
+  mysettings.rulevalue[RULE_Individualcellundervoltageloadrecovery] = 3400;
+  //11. Individual cell over temperature (external probe)
   mysettings.rulevalue[RULE_IndividualcellovertemperatureExternal] = 55;
-  //6. Pack over voltage (mV)
+  //12. Pack over voltage (mV)
   mysettings.rulevalue[RULE_IndividualcellundertemperatureExternal] = 5;
-  //7. Pack under voltage (mV)
+  //13. Pack under voltage (mV)
   mysettings.rulevalue[RULE_PackOverVoltage] = 4200 * 8;
-  //8. RULE_PackUnderVoltage
+  //14. RULE_PackUnderVoltage
   mysettings.rulevalue[RULE_PackUnderVoltage] = 3000 * 8;
   mysettings.rulevalue[RULE_Timer1] = 60 * 8;  //8am
   mysettings.rulevalue[RULE_Timer2] = 60 * 17; //5pm
