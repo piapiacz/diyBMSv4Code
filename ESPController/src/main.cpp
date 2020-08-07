@@ -614,9 +614,9 @@ void setupInfluxClient()
       //Data received
       SERIAL_DEBUG.print("\r\nData: ");
       SERIAL_DEBUG.println(len);
-      //uint8_t* d = (uint8_t*)data;
-      //for (size_t i = 0; i < len; i++) {SERIAL_DEBUG.write(d[i]);}
-    },
+/*      uint8_t* d = (uint8_t*)data;
+      for (size_t i = 0; i < len; i++) {SERIAL_DEBUG.write(d[i]);}
+*/    },
                    NULL);
 
     //send the request
@@ -640,7 +640,7 @@ void setupInfluxClient()
     }
 
     for (uint8_t i=0;i<RELAY_TOTAL;i++) {
-      poststring += "relays, relay="+String(i+1)+" s="+(previousRelayState[i]==HIGH ? "0":"1")+"\n";
+      poststring += "relays,relay="+String(i+1)+" s="+(previousRelayState[i]==HIGH ? "0":"1")+"\n";
     }
 
     //TODO: Need to URLEncode these values
@@ -649,9 +649,9 @@ void setupInfluxClient()
 
     String header = "POST " + url + " HTTP/1.1\r\n" + "Host: " + String(mysettings.influxdb_host) + "\r\n" + "Connection: close\r\n" + "Content-Length: " + poststring.length() + "\r\n" + "Content-Type: text/plain\r\n" + "\r\n";
 
-    //SERIAL_DEBUG.println(header.c_str());
-    //SERIAL_DEBUG.println(poststring.c_str());
-
+/*    SERIAL_DEBUG.println(header.c_str());
+    SERIAL_DEBUG.println(poststring.c_str());
+*/
     client->write(header.c_str());
     client->write(poststring.c_str());
   },
