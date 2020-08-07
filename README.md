@@ -1,3 +1,31 @@
+<b>2020-07-29</b><br />
+<pre>
+added rules :
+* individual cell under voltage recovery
+* individual cell under voltage load
+* individual cell under voltage load recovery
+* individual cell over voltage recovery
+* individual cell over voltage load
+* individual cell over voltage load recovery
+</pre>
+<pre>
+Relay default : X / On / Off
+</pre>
+<pre>
+InfluxDB : inBypass changed from boolean to int - Grafana cannot show boolean value in graph
+</pre>
+<pre>
+New rules usage :
+Ind. cell over voltage : disconnect charger (solar panels)
+Ind. cell over voltage recovery : reconnect charger
+Ind. cell over voltage load : connect additional load to battery (for example water heater to dump excess energy)
+Ind. cell over voltage load recovery : disconnect additional load
+
+Ind. cell under voltage load : disconnect non-critical load from battery
+Ind. cell under voltage load recovery : reconnect non-critical load
+Ind. cell under voltage : disconnect all load from battery
+Ind. cell under voltage recovery : reconnect load
+</pre>
 # diyBMS v4
 
 Version 4 of the diyBMS.  Do it yourself battery management system for Lithium ion battery packs/cells
