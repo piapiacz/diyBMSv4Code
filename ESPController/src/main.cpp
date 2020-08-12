@@ -494,7 +494,7 @@ void timerProcessRules()
     //Perhaps we should publish the relay settings over MQTT and INFLUX/website?
     for (int8_t n = 0; n < RELAY_TOTAL; n++)
     {
-      if (previousRelayState[n] != relay[n])
+      if ((previousRelayState[n] != relay[n]) || (mysettings.relaytype[n] != RELAY_PULSE))
       {
         //Would be better here to use the WRITE8 to lower i2c traffic
 #if defined(RULES_LOGGING)
