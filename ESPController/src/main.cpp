@@ -44,6 +44,9 @@ See reasons why here https://github.com/me-no-dev/ESPAsyncWebServer/issues/60
 #include <TimeLib.h>
 #include <ESP8266WiFi.h>
 #include <NtpClientLib.h>
+extern "C" {
+#include <user_interface.h>
+}
 #endif
 
 #if defined(ESP32)
@@ -801,6 +804,20 @@ void onMqttConnect(bool sessionPresent)
 {
   SERIAL_DEBUG.println("Connected to MQTT.");
   myTimerSendMqttPacket.attach(30, sendMqttPacket);
+  char buffer[100];
+  char topic[80];
+  sprintf(topic, "%s/rst",mysettings.mqtt_topic);
+  StaticJsonDocument<100> doc;
+  rst_info* RST = ESP.getResetInfoPtr();
+  doc["reason"] = RST->reason;
+  doc["exccause"] = RST->exccause;
+  doc["excvaddr"] = RST->excvaddr;
+  doc["epc1"] = RST->epc1;
+  doc["epc2"] = RST->epc2;
+  doc["epc3"] = RST->epc3;
+  doc["depc"] = RST->depc;
+  serializeJson(doc, buffer, sizeof(buffer));
+  mqttClient.publish(topic, 0, false, buffer);
 }
 
 void LoadConfiguration()
